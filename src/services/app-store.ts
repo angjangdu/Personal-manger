@@ -489,6 +489,109 @@ class AppStore {
       calendarEvents: s.calendarEvents.filter((event) => event.id !== id),
     }));
   }
+
+  // ── Activities ───────────────────────────────────────────────────────────
+  // Durations are always computed from timestamps, never trusted from a
+  // client timer (architecture doc §9).
+
+  startActivity(input: {
+    title: string;
+    taskId?: string;
+    projectId?: string;
+  }): Activity | null {
+    if (this.state.activities.some((a) => !a.endedAt)) return null;
+    const nowIso = new Date().toISOString();
+    const activity: Activity = {
+      id: crypto.randomUUID(),
+      title: input.title.trim(),
+      taskId: input.taskId || undefined,
+      projectId: input.projectId || undefined,
+      startedAt: nowIso,
+      totalPausedMs: 0,
+      createdAt: nowIso,
+    };
+    this.set((s) => ({ ...s, activities: [activity, ...s.activities] }));
+    return activity;
+  }
+
+  pauseActivity(id: string) {
+    this.set((s) => ({
+      ...s,
+      activities: s.activities.map((activity) =>
+        activity.id === id && !activity.endedAt && !activity.pausedAt
+          ? { ...activity, pausedAt: new Date().toISOString() }
+          : activity
+      ),
+    }));
+  }
+
+  resumeActivity(id: string) {
+    const activity = this.state.activities.find((a) => a.id === id);
+    if (!activity || !activity.pausedAt || activity.endedAt) return;
+    const pausedFor =
+      Date.now() - new Date(activity.pausedAt).getTime();
+    this.set((s) => ({
+      ...s,
+      activities: s.activities.map((a) =>
+        a.id === id
+          ? {
+              ...a,
+              totalPausedMs: a.totalPausedMs + pausedFor,
+              pausedAt: undefined,
+            }
+          : a
+      ),
+    }));
+  }
+
+  stopActivity(id: string) {
+    const activity = this.state.activities.find((a) => a.id === id);
+    if (!activity || activity.endedAt) return;
+
+    // Stopping while paused freezes the session at the pause point —
+    // the pause was intentional time away, not tracked work.
+    const endMs = activity.pausedAt
+      ? new Date(activity.pausedAt).getTime()
+      : Date.now();
+    const durationMinutes = Math.max(
+      1,
+      Math.round(
+        (endMs - new Date(activity.startedAt).getTime() - activity.totalPausedMs) /
+          60000
+      )
+    );
+    this.set((s) => ({
+      ...s,
+      activities: s.activities.map((a) =>
+        a.id === id
+          ? {
+              ...a,
+              endedAt: new Date(endMs).toISOString(),
+              pausedAt: undefined,
+              durationMinutes,
+            }
+          : a
+      ),
+    }));
+  }
+
+  deleteActivity(id: string) {
+    this.set((s) => ({
+      ...s,
+      activities: s.activities.filter((activity) => activity.id !== id),
+    }));
+  }
+
+  updateActivityNotes(id: string, notes: string) {
+    this.set((s) => ({
+      ...s,
+      activities: s.activities.map((activity) =>
+        activity.id === id
+          ? { ...activity, notes: notes.trim() || undefined }
+          : activity
+      ),
+    }));
+  }
 }
 
 export const appStore = new AppStore();

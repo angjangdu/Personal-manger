@@ -38,6 +38,7 @@ export function GreetingCard({
     toast(`${feature} lands in Phase ${phase}`, {
       description: "The shell and design system are ready for it.",
     });
+  void stub;
 
   return (
     <Card className={className}>
@@ -62,7 +63,7 @@ export function GreetingCard({
           <Button size="sm" onClick={stub("Task creation", 4)}>
             <ListPlus aria-hidden /> Add Task
           </Button>
-          <Button size="sm" variant="secondary" onClick={stub("Activity tracking", 10)}>
+          <Button size="sm" variant="secondary" onClick={() => router.push("/activities")}>
             <Play aria-hidden /> Start Activity
           </Button>
           <Button size="sm" variant="ghost" onClick={() => router.push("/planner")}>
