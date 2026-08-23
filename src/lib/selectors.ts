@@ -1,26 +1,119 @@
 import type { AppState } from "@/services/app-store";
 import type { Task, TaskStatus } from "@/types";
-import { isSameDay, startOfDay } from "@/lib/date-utils";
+import { endOfDay, isSameDay, startOfDay } from "@/lib/date-utils";
 
 const PRIORITY_WEIGHT = { urgent: 4, high: 3, medium: 2, low: 1 } as const;
 
+export type TaskViewKey =
+  | "all"
+  | "today"
+  | "upcoming"
+  | "inbox"
+  | "completed"
+  | "overdue";
+
+export type TaskSortKey = "due" | "priority" | "created" | "title";
+
 /** Active tasks first (by due date, undated last, priority desc), completed/cancelled last. */
-export function sortTasks(tasks: Task[]): Task[] {
-  return [...tasks].sort((a, b) => {
-    const aDone = a.status === "completed" || a.status === "cancelled";
-    const bDone = b.status === "completed" || b.status === "cancelled";
+export function sortTasksBy(tasks: Task[], key: TaskSortKey = "due"): Task[] {
+  const activeFirst = (a: Task, b: Task): number => {
+    const aDone = isTerminalStatus(a.status);
+    const bDone = isTerminalStatus(b.status);
     if (aDone !== bDone) return aDone ? 1 : -1;
-    if (aDone && bDone) {
-      return (b.completedAt ?? "").localeCompare(a.completedAt ?? "");
-    }
+    return 0;
+  };
+  const byDueDate = (a: Task, b: Task): number => {
     if (a.dueDate && b.dueDate) {
       const byDate = a.dueDate.localeCompare(b.dueDate);
       if (byDate !== 0) return byDate;
     }
     if (a.dueDate !== b.dueDate) return a.dueDate ? -1 : 1;
+    return PRIORITY_WEIGHT[b.priority] - PRIORITY_WEIGHT[a.priority];
+  };
+
+  return [...tasks].sort((a, b) => {
+    const terminal = activeFirst(a, b);
+    if (terminal !== 0) return terminal;
+    if (isTerminalStatus(a.status)) {
+      return (b.completedAt ?? "").localeCompare(a.completedAt ?? "");
+    }
+    switch (key) {
+      case "priority":
+        return (
+          PRIORITY_WEIGHT[b.priority] - PRIORITY_WEIGHT[a.priority] ||
+          byDueDate(a, b)
+        );
+      case "created":
+        return b.createdAt.localeCompare(a.createdAt);
+      case "title":
+        return a.title.localeCompare(b.title);
+      case "due":
+      default:
+        return byDueDate(a, b);
+    }
+  });
+}
+
+export function selectTasksForView(tasks: Task[], view: TaskViewKey): Task[] {
+  const today = startOfDay();
+  switch (view) {
+    case "today":
+      return tasks.filter(
+        (task) => task.dueDate && isSameDay(new Date(task.dueDate), today)
+      );
+    case "upcoming":
+      return tasks.filter(
+        (task) =>
+          task.dueDate &&
+          new Date(task.dueDate) > endOfDay(today) &&
+          !isTerminalStatus(task.status)
+      );
+    case "inbox":
+      return tasks.filter((task) => task.status === "inbox");
+    case "completed":
+      return tasks.filter((task) => task.status === "completed");
+    case "overdue":
+      return tasks.filter(
+        (task) =>
+          task.dueDate &&
+          new Date(task.dueDate) < today &&
+          !isTerminalStatus(task.status)
+      );
+    case "all":
+    default:
+      return tasks;
+  }
+}
+
+export interface TaskFilters {
+  query?: string;
+  projectId?: string;
+  tagId?: string;
+}
+
+export function filterTasks(
+  tasks: Task[],
+  filters: TaskFilters,
+  context: { projects: AppState["projects"]; tags: AppState["tags"] }
+): Task[] {
+  const { query = "", projectId = "", tagId = "" } = filters;
+  const q = query.trim().toLowerCase();
+  if (!q && !projectId && !tagId) return tasks;
+
+  return tasks.filter((task) => {
+    if (projectId && task.projectId !== projectId) return false;
+    if (tagId && !task.tagIds.includes(tagId)) return false;
+    if (!q) return true;
+    const project = context.projects.find((p) => p.id === task.projectId);
+    const tagNames = context.tags
+      .filter((t) => task.tagIds.includes(t.id))
+      .map((t) => t.name)
+      .join(" ");
     return (
-      PRIORITY_WEIGHT[b.priority] - PRIORITY_WEIGHT[a.priority] ||
-      a.createdAt.localeCompare(b.createdAt)
+      task.title.toLowerCase().includes(q) ||
+      (task.description ?? "").toLowerCase().includes(q) ||
+      (project?.name ?? "").toLowerCase().includes(q) ||
+      tagNames.toLowerCase().includes(q)
     );
   });
 }
