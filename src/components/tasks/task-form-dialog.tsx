@@ -48,14 +48,27 @@ interface TaskFormDialogProps {
   onOpenChange: (open: boolean) => void;
   /** When set the dialog edits this task instead of creating one. */
   task?: Task;
+  /** Preset project for newly created tasks (e.g. adding from a project page). */
+  defaultProjectId?: string;
 }
 
-export function TaskFormDialog({ open, onOpenChange, task }: TaskFormDialogProps) {
+export function TaskFormDialog({
+  open,
+  onOpenChange,
+  task,
+  defaultProjectId,
+}: TaskFormDialogProps) {
+  if (!open) return null;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* Keyed remount initializes form state per open/task without effects. */}
       {open ? (
-        <TaskFormFields key={task?.id ?? "__new__"} task={task} onClose={() => onOpenChange(false)} />
+        <TaskFormFields
+          key={task?.id ?? "__new__"}
+          task={task}
+          defaultProjectId={defaultProjectId}
+          onClose={() => onOpenChange(false)}
+        />
       ) : null}
     </Dialog>
   );
@@ -63,10 +76,11 @@ export function TaskFormDialog({ open, onOpenChange, task }: TaskFormDialogProps
 
 interface TaskFormFieldsProps {
   task?: Task;
+  defaultProjectId?: string;
   onClose: () => void;
 }
 
-function TaskFormFields({ task, onClose }: TaskFormFieldsProps) {
+function TaskFormFields({ task, defaultProjectId, onClose }: TaskFormFieldsProps) {
   const state = useAppState();
 
   const [title, setTitle] = useState(task?.title ?? "");
@@ -78,7 +92,7 @@ function TaskFormFields({ task, onClose }: TaskFormFieldsProps) {
   const [duration, setDuration] = useState(
     task?.estimatedDurationMinutes ? String(task.estimatedDurationMinutes) : ""
   );
-  const [projectId, setProjectId] = useState(task?.projectId ?? "");
+  const [projectId, setProjectId] = useState(task?.projectId ?? defaultProjectId ?? "");
   const [goalId, setGoalId] = useState(task?.goalId ?? "");
   const [tagIds, setTagIds] = useState<string[]>(task?.tagIds ?? []);
   const [subtaskDraft, setSubtaskDraft] = useState("");

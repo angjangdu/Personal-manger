@@ -55,6 +55,14 @@ export interface TaskInput {
   tagIds: string[];
 }
 
+export interface ProjectInput {
+  name: string;
+  description?: string;
+  color?: string;
+  goalId?: string;
+  deadline?: string;
+}
+
 function seedState(): AppState {
   return {
     tasks: mockTasks,
@@ -247,6 +255,62 @@ class AppStore {
               subtasks: task.subtasks.filter((sub) => sub.id !== subtaskId),
               updatedAt: new Date().toISOString(),
             }
+          : task
+      ),
+    }));
+  }
+
+  // ── Projects ─────────────────────────────────────────────────────────────
+
+  addProject(input: ProjectInput): Project {
+    const nowIso = new Date().toISOString();
+    const project: Project = {
+      id: crypto.randomUUID(),
+      name: input.name.trim(),
+      description: input.description?.trim() || undefined,
+      color: input.color,
+      goalId: input.goalId || undefined,
+      deadline: input.deadline || undefined,
+      archived: false,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+    this.set((s) => ({ ...s, projects: [project, ...s.projects] }));
+    return project;
+  }
+
+  updateProject(id: string, patch: Partial<ProjectInput> & { archived?: boolean }) {
+    this.set((s) => ({
+      ...s,
+      projects: s.projects.map((project) =>
+        project.id === id
+          ? {
+              ...project,
+              ...patch,
+              name: patch.name?.trim() || project.name,
+              description: patch.description?.trim() || undefined,
+              goalId: patch.goalId !== undefined ? patch.goalId || undefined : project.goalId,
+              deadline: patch.deadline !== undefined ? patch.deadline || undefined : project.deadline,
+              updatedAt: new Date().toISOString(),
+            }
+          : project
+      ),
+    }));
+  }
+
+  setProjectArchived(id: string, archived: boolean) {
+    this.updateProject(id, { archived });
+  }
+
+  /** Deletes a project and detaches its tasks (tasks are kept, orphaned). */
+  deleteProject(id: string) {
+    const nowIso = new Date().toISOString();
+    this.set((s) => ({
+      ...s,
+      projects: s.projects.filter((project) => project.id !== id),
+      tasks: s.tasks.map((task) =>
+        task.projectId === id
+          ? { ...task, projectId: undefined, updatedAt: nowIso }
           : task
       ),
     }));
