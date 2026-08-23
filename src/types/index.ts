@@ -144,3 +144,39 @@ export interface DailyReview {
   tomorrowPriority?: string;
   createdAt: string;
 }
+
+// ── Study ──────────────────────────────────────────────────────────────────
+// Hierarchy: Subject (course) → Unit → Topic → Study Session → Revision
+
+export interface StudySubject {
+  id: string;
+  name: string;
+  description?: string;
+  color?: string;
+  archived: boolean;
+  createdAt: string;
+}
+
+export type StudyTopicStatus = "todo" | "learning" | "mastered";
+
+export interface StudyTopic {
+  id: string;
+  subjectId: string;
+  /** Set when this topic belongs to a unit; undefined = the topic IS a unit. */
+  parentId?: string;
+  name: string;
+  status: StudyTopicStatus;
+  lastRevisedAt?: string;
+  createdAt: string;
+}
+
+export interface StudySession {
+  id: string;
+  subjectId: string;
+  topicId?: string;
+  type: "study" | "revision";
+  date: string;
+  durationMinutes: number;
+  notes?: string;
+  createdAt: string;
+}

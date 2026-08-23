@@ -6,6 +6,9 @@ import type {
   HabitLog,
   Milestone,
   Project,
+  StudySession,
+  StudySubject,
+  StudyTopic,
   Subtask,
   Tag,
   Task,
@@ -17,6 +20,9 @@ import {
   mockHabitLogs,
   mockHabits,
   mockProjects,
+  mockStudySessions,
+  mockStudySubjects,
+  mockStudyTopics,
   mockTags,
   mockTasks,
 } from "@/lib/mock-data";
@@ -41,6 +47,9 @@ export interface AppState {
   activities: Activity[];
   calendarEvents: CalendarEvent[];
   tags: Tag[];
+  studySubjects: StudySubject[];
+  studyTopics: StudyTopic[];
+  studySessions: StudySession[];
 }
 
 export interface TaskInput {
@@ -87,6 +96,27 @@ export interface HabitInput {
   weekdays?: number[];
 }
 
+export interface SubjectInput {
+  name: string;
+  description?: string;
+  color?: string;
+}
+
+export interface TopicInput {
+  subjectId: string;
+  parentId?: string;
+  name: string;
+}
+
+export interface SessionInput {
+  subjectId: string;
+  topicId?: string;
+  type: StudySession["type"];
+  date: string;
+  durationMinutes: number;
+  notes?: string;
+}
+
 function seedState(): AppState {
   return {
     tasks: mockTasks,
@@ -97,6 +127,9 @@ function seedState(): AppState {
     activities: mockActivities,
     calendarEvents: mockCalendarEvents,
     tags: mockTags,
+    studySubjects: mockStudySubjects,
+    studyTopics: mockStudyTopics,
+    studySessions: mockStudySessions,
   };
 }
 
@@ -676,6 +709,116 @@ class AppStore {
       };
       this.set((s) => ({ ...s, habitLogs: [...s.habitLogs, log] }));
     }
+  }
+
+  // ── Study ────────────────────────────────────────────────────────────────
+
+  addSubject(input: SubjectInput): StudySubject {
+    const nowIso = new Date().toISOString();
+    const subject: StudySubject = {
+      id: crypto.randomUUID(),
+      name: input.name.trim(),
+      description: input.description?.trim() || undefined,
+      color: input.color,
+      archived: false,
+      createdAt: nowIso,
+    };
+    this.set((s) => ({ ...s, studySubjects: [subject, ...s.studySubjects] }));
+    return subject;
+  }
+
+  updateSubject(id: string, patch: Partial<SubjectInput> & { archived?: boolean }) {
+    this.set((s) => ({
+      ...s,
+      studySubjects: s.studySubjects.map((subject) =>
+        subject.id === id
+          ? {
+              ...subject,
+              ...patch,
+              name: patch.name?.trim() || subject.name,
+              description: patch.description !== undefined ? patch.description?.trim() || undefined : subject.description,
+            }
+          : subject
+      ),
+    }));
+  }
+
+  /** Deletes a subject with its topics and sessions. */
+  deleteSubject(id: string) {
+    this.set((s) => ({
+      ...s,
+      studySubjects: s.studySubjects.filter((subject) => subject.id !== id),
+      studyTopics: s.studyTopics.filter((topic) => topic.subjectId !== id),
+      studySessions: s.studySessions.filter((session) => session.subjectId !== id),
+    }));
+  }
+
+  addTopic(input: TopicInput): StudyTopic | null {
+    const trimmed = input.name.trim();
+    if (!trimmed) return null;
+    const topic: StudyTopic = {
+      id: crypto.randomUUID(),
+      subjectId: input.subjectId,
+      parentId: input.parentId || undefined,
+      name: trimmed,
+      status: "todo",
+      createdAt: new Date().toISOString(),
+    };
+    this.set((s) => ({ ...s, studyTopics: [...s.studyTopics, topic] }));
+    return topic;
+  }
+
+  updateTopicStatus(id: string, status: StudyTopic["status"]) {
+    this.set((s) => ({
+      ...s,
+      studyTopics: s.studyTopics.map((topic) =>
+        topic.id === id ? { ...topic, status } : topic
+      ),
+    }));
+  }
+
+  deleteTopic(id: string) {
+    // Also removes child topics (units own their topics).
+    this.set((s) => ({
+      ...s,
+      studyTopics: s.studyTopics.filter(
+        (topic) => topic.id !== id && topic.parentId !== id
+      ),
+    }));
+  }
+
+  /** Logs a study/revision session; revision stamps the topic's lastRevisedAt. */
+  addSession(input: SessionInput): StudySession | null {
+    const session: StudySession = {
+      id: crypto.randomUUID(),
+      subjectId: input.subjectId,
+      topicId: input.topicId || undefined,
+      type: input.type,
+      date: input.date,
+      durationMinutes: Math.max(1, Math.round(input.durationMinutes)),
+      notes: input.notes?.trim() || undefined,
+      createdAt: new Date().toISOString(),
+    };
+    this.set((s) => ({
+      ...s,
+      studySessions: [session, ...s.studySessions],
+      studyTopics:
+        session.type === "revision" && session.topicId
+          ? s.studyTopics.map((topic) =>
+              topic.id === session.topicId
+                ? { ...topic, lastRevisedAt: session.date }
+                : topic
+            )
+          : s.studyTopics,
+    }));
+    return session;
+  }
+
+  deleteSession(id: string) {
+    this.set((s) => ({
+      ...s,
+      studySessions: s.studySessions.filter((session) => session.id !== id),
+    }));
   }
 }
 

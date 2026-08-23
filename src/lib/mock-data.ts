@@ -5,6 +5,9 @@ import type {
   Habit,
   HabitLog,
   Project,
+  StudySession,
+  StudySubject,
+  StudyTopic,
   Tag,
   Task,
 } from "@/types";
@@ -102,8 +105,7 @@ export const mockGoals: Goal[] = [
   },
 ];
 
-export const mockTags: Tag[] = [
-  { id: "study", name: "Study", color: "#6366f1" },
+export const mockTags: Tag[] = [  { id: "study", name: "Study", color: "#6366f1" },
   { id: "dev", name: "Dev", color: "#10b981" },
   { id: "writing", name: "Writing", color: "#f59e0b" },
   { id: "planning", name: "Planning", color: "#8b5cf6" },
@@ -276,4 +278,45 @@ export const mockHabits: Habit[] = [
 export const mockHabitLogs: HabitLog[] = [
   { id: "log-1", habitId: "habit-read", completedOn: iso(startOfDay()), createdAt: iso(todayAt(8, 0)) },
   { id: "log-2", habitId: "habit-water", completedOn: iso(startOfDay()), createdAt: iso(todayAt(13, 0)) },
+];
+
+// ── Study ──────────────────────────────────────────────────────────────────
+
+export const mockStudySubjects: StudySubject[] = [
+  {
+    id: "subj-physics",
+    name: "Mathematical Physics",
+    description: "Second-semester methods course.",
+    color: "#6366f1",
+    archived: false,
+    createdAt: iso(new Date(now.getTime() - 30 * 86400000)),
+  },
+  {
+    id: "subj-calculus",
+    name: "Calculus",
+    description: "Differential equations and series.",
+    color: "#10b981",
+    archived: false,
+    createdAt: iso(new Date(now.getTime() - 45 * 86400000)),
+  },
+];
+
+export const mockStudyTopics: StudyTopic[] = [
+  // Physics — units + topics
+  { id: "top-units-mech", subjectId: "subj-physics", name: "Classical Mechanics", status: "learning", createdAt: iso(new Date(now.getTime() - 30 * 86400000)) },
+  { id: "top-lagrangian", subjectId: "subj-physics", parentId: "top-units-mech", name: "Lagrangian Dynamics", status: "learning", lastRevisedAt: iso(new Date(now.getTime() - 3 * 86400000)), createdAt: iso(new Date(now.getTime() - 28 * 86400000)) },
+  { id: "top-hamiltonian", subjectId: "subj-physics", parentId: "top-units-mech", name: "Hamiltonian Mechanics", status: "todo", createdAt: iso(new Date(now.getTime() - 28 * 86400000)) },
+  { id: "top-variational", subjectId: "subj-physics", parentId: "top-units-mech", name: "Variational Principles", status: "mastered", lastRevisedAt: iso(new Date(now.getTime() - 10 * 86400000)), createdAt: iso(new Date(now.getTime() - 27 * 86400000)) },
+  { id: "top-units-elec", subjectId: "subj-physics", name: "Electrodynamics", status: "todo", createdAt: iso(new Date(now.getTime() - 20 * 86400000)) },
+  { id: "top-maxwell", subjectId: "subj-physics", parentId: "top-units-elec", name: "Maxwell Equations", status: "learning", createdAt: iso(new Date(now.getTime() - 18 * 86400000)) },
+  // Calculus
+  { id: "top-units-ode", subjectId: "subj-calculus", name: "Differential Equations", status: "learning", createdAt: iso(new Date(now.getTime() - 40 * 86400000)) },
+  { id: "top-odes", subjectId: "subj-calculus", parentId: "top-units-ode", name: "First-Order ODEs", status: "mastered", lastRevisedAt: iso(new Date(now.getTime() - 6 * 86400000)), createdAt: iso(new Date(now.getTime() - 38 * 86400000)) },
+  { id: "top-series", subjectId: "subj-calculus", parentId: "top-units-ode", name: "Series Solutions", status: "learning", lastRevisedAt: iso(new Date(now.getTime() - 2 * 86400000)), createdAt: iso(new Date(now.getTime() - 25 * 86400000)) },
+];
+
+export const mockStudySessions: StudySession[] = [
+  { id: "sess-1", subjectId: "subj-physics", topicId: "top-lagrangian", type: "study", date: iso(new Date(now.getTime() - 3 * 86400000)), durationMinutes: 90, notes: "Worked through Euler-Lagrange derivations.", createdAt: iso(new Date(now.getTime() - 3 * 86400000)) },
+  { id: "sess-2", subjectId: "subj-calculus", topicId: "top-series", type: "revision", date: iso(new Date(now.getTime() - 2 * 86400000)), durationMinutes: 45, createdAt: iso(new Date(now.getTime() - 2 * 86400000)) },
+  { id: "sess-3", subjectId: "subj-physics", topicId: "top-maxwell", type: "study", date: iso(todayAt(16, 0)), durationMinutes: 60, createdAt: iso(todayAt(16, 0)) },
 ];
