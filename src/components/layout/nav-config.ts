@@ -4,6 +4,7 @@ import {
   BookOpen,
   Calendar,
   CalendarClock,
+  ClipboardCheck,
   FolderKanban,
   LayoutDashboard,
   ListTodo,
@@ -31,6 +32,7 @@ export const primaryNav: NavItem[] = [
 
 export const secondaryNav: NavItem[] = [
   { title: "Planner", href: "/planner", icon: CalendarClock },
+  { title: "Review", href: "/review", icon: ClipboardCheck },
   { title: "Habits", href: "/habits", icon: Repeat },
   { title: "Study", href: "/study", icon: BookOpen },
   { title: "Notes", href: "/notes", icon: Notebook },

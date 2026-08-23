@@ -1,6 +1,7 @@
-import type {
+﻿import type {
   Activity,
   CalendarEvent,
+  DailyReview,
   Goal,
   Habit,
   HabitLog,
@@ -33,7 +34,7 @@ import {
  * Client-side external store for the demo phase.
  *
  * Backed by localStorage so state survives refresh (FR-016). React binds to it
- * via useSyncExternalStore — the single source of truth for UI mutations.
+ * via useSyncExternalStore â€” the single source of truth for UI mutations.
  * Phase 21+ replaces the persistence internals with Supabase behind the same
  * method surface.
  */
@@ -53,6 +54,7 @@ export interface AppState {
   studyTopics: StudyTopic[];
   studySessions: StudySession[];
   notes: Note[];
+  dailyReviews: DailyReview[];
 }
 
 export interface TaskInput {
@@ -95,7 +97,7 @@ export interface HabitInput {
   name: string;
   description?: string;
   schedule: Habit["schedule"];
-  /** JS day indices (0=Sun…6=Sat) when schedule is weekly. */
+  /** JS day indices (0=Sunâ€¦6=Sat) when schedule is weekly. */
   weekdays?: number[];
 }
 
@@ -143,6 +145,7 @@ function seedState(): AppState {
     studyTopics: mockStudyTopics,
     studySessions: mockStudySessions,
     notes: mockNotes,
+    dailyReviews: [],
   };
 }
 
@@ -164,7 +167,7 @@ function persist(state: AppState) {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch {
-    // Storage full/unavailable — demo keeps working in memory.
+    // Storage full/unavailable â€” demo keeps working in memory.
   }
 }
 
@@ -197,7 +200,7 @@ class AppStore {
     this.emit();
   }
 
-  // ── Tasks ────────────────────────────────────────────────────────────────
+  // â”€â”€ Tasks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   addTask(input: TaskInput): Task {
     const nowIso = new Date().toISOString();
@@ -330,7 +333,7 @@ class AppStore {
     }));
   }
 
-  // ── Projects ─────────────────────────────────────────────────────────────
+  // â”€â”€ Projects â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   addProject(input: ProjectInput): Project {
     const nowIso = new Date().toISOString();
@@ -386,7 +389,7 @@ class AppStore {
     }));
   }
 
-  // ── Goals ────────────────────────────────────────────────────────────────
+  // â”€â”€ Goals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   addGoal(input: GoalInput): Goal {
     const nowIso = new Date().toISOString();
@@ -447,7 +450,7 @@ class AppStore {
     }));
   }
 
-  // ── Milestones ───────────────────────────────────────────────────────────
+  // â”€â”€ Milestones â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   addMilestone(goalId: string, title: string) {
     const trimmed = title.trim();
@@ -502,7 +505,7 @@ class AppStore {
     }));
   }
 
-  // ── Calendar events ──────────────────────────────────────────────────────
+  // â”€â”€ Calendar events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   addEvent(input: EventInput): CalendarEvent {
     const event: CalendarEvent = {
@@ -544,9 +547,9 @@ class AppStore {
     }));
   }
 
-  // ── Activities ───────────────────────────────────────────────────────────
+  // â”€â”€ Activities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Durations are always computed from timestamps, never trusted from a
-  // client timer (architecture doc §9).
+  // client timer (architecture doc Â§9).
 
   startActivity(input: {
     title: string;
@@ -602,7 +605,7 @@ class AppStore {
     const activity = this.state.activities.find((a) => a.id === id);
     if (!activity || activity.endedAt) return;
 
-    // Stopping while paused freezes the session at the pause point —
+    // Stopping while paused freezes the session at the pause point â€”
     // the pause was intentional time away, not tracked work.
     const endMs = activity.pausedAt
       ? new Date(activity.pausedAt).getTime()
@@ -647,7 +650,7 @@ class AppStore {
     }));
   }
 
-  // ── Habits ───────────────────────────────────────────────────────────────
+  // â”€â”€ Habits â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   addHabit(input: HabitInput): Habit {
     const nowIso = new Date().toISOString();
@@ -724,7 +727,7 @@ class AppStore {
     }
   }
 
-  // ── Study ────────────────────────────────────────────────────────────────
+  // â”€â”€ Study â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   addSubject(input: SubjectInput): StudySubject {
     const nowIso = new Date().toISOString();
@@ -834,7 +837,7 @@ class AppStore {
     }));
   }
 
-  // ── Notes ────────────────────────────────────────────────────────────────
+  // â”€â”€ Notes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   addNote(input: NoteInput): Note {
     const nowIso = new Date().toISOString();
@@ -878,6 +881,45 @@ class AppStore {
       ...s,
       notes: s.notes.filter((note) => note.id !== id),
     }));
+  }
+
+  // ── Daily reviews ────────────────────────────────────────────────────────
+
+  /** Creates or updates the review for a given day (one per calendar day). */
+  upsertDailyReview(
+    input: {
+      date: string;
+      tasksCompletedCount: number;
+      focusMinutes: number;
+      studyMinutes: number;
+    } & Partial<Pick<DailyReview, "wentWell" | "wentWrong" | "toImprove" | "tomorrowPriority">>
+  ) {
+    const dayIso = input.date.slice(0, 10);
+    const existing = this.state.dailyReviews.find(
+      (review) => review.date.slice(0, 10) === dayIso
+    );
+    if (existing) {
+      this.set((s) => ({
+        ...s,
+        dailyReviews: s.dailyReviews.map((review) =>
+          review.date.slice(0, 10) === dayIso ? { ...review, ...input } : review
+        ),
+      }));
+    } else {
+      const review: DailyReview = {
+        id: crypto.randomUUID(),
+        date: input.date,
+        tasksCompletedCount: input.tasksCompletedCount,
+        focusMinutes: input.focusMinutes,
+        studyMinutes: input.studyMinutes,
+        wentWell: input.wentWell?.trim() || undefined,
+        wentWrong: input.wentWrong?.trim() || undefined,
+        toImprove: input.toImprove?.trim() || undefined,
+        tomorrowPriority: input.tomorrowPriority?.trim() || undefined,
+        createdAt: new Date().toISOString(),
+      };
+      this.set((s) => ({ ...s, dailyReviews: [review, ...s.dailyReviews] }));
+    }
   }
 }
 
