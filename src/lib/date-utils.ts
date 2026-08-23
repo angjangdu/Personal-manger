@@ -57,3 +57,52 @@ export function greeting(date: Date = new Date()): string {
   if (hour < 18) return "Good afternoon";
   return "Good evening";
 }
+
+export function addDays(date: Date, days: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+/** Monday-first start of week. */
+export function startOfWeek(date: Date = new Date()): Date {
+  const d = startOfDay(date);
+  const day = d.getDay();
+  return addDays(d, day === 0 ? -6 : 1 - day);
+}
+
+export function startOfMonth(date: Date = new Date()): Date {
+  const d = startOfDay(date);
+  d.setDate(1);
+  return d;
+}
+
+export function addMonths(date: Date, months: number): Date {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + months);
+  return d;
+}
+
+/** 42-cell grid (6 weeks, Monday-first) covering the month of `date`. */
+export function monthGridCells(date: Date = new Date()): Date[] {
+  const first = startOfWeek(startOfMonth(date));
+  return Array.from({ length: 42 }, (_, i) => addDays(first, i));
+}
+
+/** "09:00" style string from a date. */
+export function toTimeString(date: Date): string {
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+/** Minutes since midnight for a time string "HH:MM". */
+export function timeStringToMinutes(value: string): number {
+  const [h, m] = value.split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+/** Compact label for an hour index: 0 -> "12 AM", 13 -> "1 PM". */
+export function hourLabel(hour: number): string {
+  const suffix = hour < 12 ? "AM" : "PM";
+  const h = hour % 12 === 0 ? 12 : hour % 12;
+  return `${h} ${suffix}`;
+}

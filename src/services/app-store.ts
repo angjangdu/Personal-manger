@@ -71,6 +71,14 @@ export interface GoalInput {
   deadline?: string;
 }
 
+export interface EventInput {
+  title: string;
+  startAt: string;
+  endAt: string;
+  allDay: boolean;
+  taskId?: string;
+}
+
 function seedState(): AppState {
   return {
     tasks: mockTasks,
@@ -437,6 +445,48 @@ class AppStore {
             }
           : goal
       ),
+    }));
+  }
+
+  // ── Calendar events ──────────────────────────────────────────────────────
+
+  addEvent(input: EventInput): CalendarEvent {
+    const event: CalendarEvent = {
+      id: crypto.randomUUID(),
+      title: input.title.trim(),
+      startAt: input.startAt,
+      endAt: input.endAt,
+      allDay: input.allDay,
+      taskId: input.taskId || undefined,
+      createdAt: new Date().toISOString(),
+    };
+    this.set((s) => ({ ...s, calendarEvents: [event, ...s.calendarEvents] }));
+    return event;
+  }
+
+  updateEvent(id: string, patch: Partial<EventInput>) {
+    this.set((s) => ({
+      ...s,
+      calendarEvents: s.calendarEvents.map((event) =>
+        event.id === id
+          ? {
+              ...event,
+              ...patch,
+              title: patch.title?.trim() || event.title,
+              taskId:
+                patch.taskId !== undefined
+                  ? patch.taskId || undefined
+                  : event.taskId,
+            }
+          : event
+      ),
+    }));
+  }
+
+  deleteEvent(id: string) {
+    this.set((s) => ({
+      ...s,
+      calendarEvents: s.calendarEvents.filter((event) => event.id !== id),
     }));
   }
 }
