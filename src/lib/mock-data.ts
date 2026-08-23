@@ -5,6 +5,7 @@ import type {
   Habit,
   HabitLog,
   Project,
+  Tag,
   Task,
 } from "@/types";
 import { startOfDay } from "@/lib/date-utils";
@@ -99,6 +100,13 @@ export const mockGoals: Goal[] = [
     createdAt: iso(new Date(now.getTime() - 90 * 86400000)),
     updatedAt: iso(new Date(now.getTime() - 1 * 86400000)),
   },
+];
+
+export const mockTags: Tag[] = [
+  { id: "study", name: "Study", color: "#6366f1" },
+  { id: "dev", name: "Dev", color: "#10b981" },
+  { id: "writing", name: "Writing", color: "#f59e0b" },
+  { id: "planning", name: "Planning", color: "#8b5cf6" },
 ];
 
 export const mockTasks: Task[] = [

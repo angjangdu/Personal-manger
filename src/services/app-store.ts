@@ -1,0 +1,260 @@
+import type {
+  Activity,
+  CalendarEvent,
+  Goal,
+  Habit,
+  HabitLog,
+  Project,
+  Subtask,
+  Tag,
+  Task,
+} from "@/types";
+import {
+  mockActivities,
+  mockCalendarEvents,
+  mockGoals,
+  mockHabitLogs,
+  mockHabits,
+  mockProjects,
+  mockTags,
+  mockTasks,
+} from "@/lib/mock-data";
+
+/**
+ * Client-side external store for the demo phase.
+ *
+ * Backed by localStorage so state survives refresh (FR-016). React binds to it
+ * via useSyncExternalStore — the single source of truth for UI mutations.
+ * Phase 21+ replaces the persistence internals with Supabase behind the same
+ * method surface.
+ */
+
+export const STORAGE_KEY = "personal-os-state-v1";
+
+export interface AppState {
+  tasks: Task[];
+  projects: Project[];
+  goals: Goal[];
+  habits: Habit[];
+  habitLogs: HabitLog[];
+  activities: Activity[];
+  calendarEvents: CalendarEvent[];
+  tags: Tag[];
+}
+
+export interface TaskInput {
+  title: string;
+  description?: string;
+  status: Task["status"];
+  priority: Task["priority"];
+  dueDate?: string;
+  dueTime?: string;
+  estimatedDurationMinutes?: number;
+  projectId?: string;
+  goalId?: string;
+  tagIds: string[];
+}
+
+function seedState(): AppState {
+  return {
+    tasks: mockTasks,
+    projects: mockProjects,
+    goals: mockGoals,
+    habits: mockHabits,
+    habitLogs: mockHabitLogs,
+    activities: mockActivities,
+    calendarEvents: mockCalendarEvents,
+    tags: mockTags,
+  };
+}
+
+const SERVER_SNAPSHOT = seedState();
+
+function loadState(): AppState {
+  if (typeof window === "undefined") return SERVER_SNAPSHOT;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return SERVER_SNAPSHOT;
+    return { ...SERVER_SNAPSHOT, ...(JSON.parse(raw) as AppState) };
+  } catch {
+    return SERVER_SNAPSHOT;
+  }
+}
+
+function persist(state: AppState) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Storage full/unavailable — demo keeps working in memory.
+  }
+}
+
+class AppStore {
+  private state: AppState = SERVER_SNAPSHOT;
+  private listeners = new Set<() => void>();
+
+  /** Called once on the client before first subscription. */
+  hydrate() {
+    this.state = loadState();
+    this.emit();
+  }
+
+  getState = (): AppState => this.state;
+
+  getServerSnapshot = (): AppState => SERVER_SNAPSHOT;
+
+  subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  };
+
+  private emit() {
+    persist(this.state);
+    for (const listener of this.listeners) listener();
+  }
+
+  private set(mutator: (state: AppState) => AppState) {
+    this.state = mutator(this.state);
+    this.emit();
+  }
+
+  // ── Tasks ────────────────────────────────────────────────────────────────
+
+  addTask(input: TaskInput): Task {
+    const nowIso = new Date().toISOString();
+    const task: Task = {
+      id: crypto.randomUUID(),
+      title: input.title.trim(),
+      description: input.description?.trim() || undefined,
+      status: input.status,
+      priority: input.priority,
+      dueDate: input.dueDate || undefined,
+      dueTime: input.dueTime || undefined,
+      estimatedDurationMinutes: input.estimatedDurationMinutes || undefined,
+      projectId: input.projectId || undefined,
+      goalId: input.goalId || undefined,
+      tagIds: input.tagIds,
+      subtasks: [],
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+    this.set((s) => ({ ...s, tasks: [task, ...s.tasks] }));
+    return task;
+  }
+
+  updateTask(id: string, patch: Partial<TaskInput>) {
+    this.set((s) => ({
+      ...s,
+      tasks: s.tasks.map((task) =>
+        task.id === id
+          ? {
+              ...task,
+              ...patch,
+              title: patch.title?.trim() || task.title,
+              description: patch.description?.trim() || undefined,
+              dueDate: patch.dueDate || undefined,
+              dueTime: patch.dueTime || undefined,
+              estimatedDurationMinutes: patch.estimatedDurationMinutes || undefined,
+              projectId: patch.projectId || undefined,
+              goalId: patch.goalId || undefined,
+              tagIds: patch.tagIds ?? task.tagIds,
+              updatedAt: new Date().toISOString(),
+            }
+          : task
+      ),
+    }));
+  }
+
+  deleteTask(id: string) {
+    this.set((s) => ({ ...s, tasks: s.tasks.filter((task) => task.id !== id) }));
+  }
+
+  setTaskStatus(id: string, status: Task["status"]) {
+    this.set((s) => ({
+      ...s,
+      tasks: s.tasks.map((task) =>
+        task.id === id
+          ? {
+              ...task,
+              status,
+              completedAt:
+                status === "completed" ? new Date().toISOString() : undefined,
+              updatedAt: new Date().toISOString(),
+            }
+          : task
+      ),
+    }));
+  }
+
+  toggleTaskComplete(id: string) {
+    const task = this.state.tasks.find((t) => t.id === id);
+    if (!task) return;
+    this.setTaskStatus(id, task.status === "completed" ? "planned" : "completed");
+  }
+
+  addSubtask(taskId: string, title: string) {
+    const trimmed = title.trim();
+    if (!trimmed) return;
+    this.set((s) => ({
+      ...s,
+      tasks: s.tasks.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              subtasks: [
+                ...task.subtasks,
+                {
+                  id: crypto.randomUUID(),
+                  taskId,
+                  title: trimmed,
+                  completed: false,
+                  order: task.subtasks.length,
+                  createdAt: new Date().toISOString(),
+                } satisfies Subtask,
+              ],
+              updatedAt: new Date().toISOString(),
+            }
+          : task
+      ),
+    }));
+  }
+
+  toggleSubtask(taskId: string, subtaskId: string) {
+    this.set((s) => ({
+      ...s,
+      tasks: s.tasks.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              subtasks: task.subtasks.map((sub) =>
+                sub.id === subtaskId ? { ...sub, completed: !sub.completed } : sub
+              ),
+              updatedAt: new Date().toISOString(),
+            }
+          : task
+      ),
+    }));
+  }
+
+  deleteSubtask(taskId: string, subtaskId: string) {
+    this.set((s) => ({
+      ...s,
+      tasks: s.tasks.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              subtasks: task.subtasks.filter((sub) => sub.id !== subtaskId),
+              updatedAt: new Date().toISOString(),
+            }
+          : task
+      ),
+    }));
+  }
+}
+
+export const appStore = new AppStore();
+
+if (typeof window !== "undefined") {
+  appStore.hydrate();
+}

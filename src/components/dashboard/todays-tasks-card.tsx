@@ -1,16 +1,11 @@
+"use client";
+
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Circle, Timer } from "lucide-react";
+import { ArrowRight, CheckCircle2, Circle } from "lucide-react";
 import type { Task } from "@/types";
 import { formatMinutes } from "@/lib/date-utils";
+import { appStore } from "@/services/app-store";
 import { cn } from "@/lib/utils";
-
-const statusIcon = {
-  inbox: Circle,
-  planned: Circle,
-  in_progress: Timer,
-  completed: CheckCircle2,
-  cancelled: Circle,
-} as const;
 
 interface TodaysTasksCardProps {
   tasks: Task[];
@@ -38,18 +33,29 @@ export function TodaysTasksCard({ tasks, className }: TodaysTasksCardProps) {
       </header>
       <ul className="divide-y">
         {tasks.map((task) => {
-          const Icon = statusIcon[task.status];
           const completed = task.status === "completed";
           return (
             <li key={task.id} className="flex items-center gap-3 px-4 py-2.5">
-              <Icon
-                className={cn(
-                  "size-4 shrink-0",
-                  completed ? "fill-current text-emerald-500" : "text-muted-foreground",
-                  task.status === "in_progress" && "animate-pulse text-blue-500"
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={completed}
+                aria-label={completed ? `Reopen ${task.title}` : `Complete ${task.title}`}
+                onClick={() => appStore.toggleTaskComplete(task.id)}
+                className="shrink-0"
+              >
+                {completed ? (
+                  <CheckCircle2 className="size-4 fill-current text-emerald-500" aria-hidden />
+                ) : (
+                  <Circle
+                    className={cn(
+                      "text-muted-foreground hover:text-primary hover:border-primary size-4 transition-colors",
+                      task.status === "in_progress" && "animate-pulse text-blue-500"
+                    )}
+                    aria-hidden
+                  />
                 )}
-                aria-hidden
-              />
+              </button>
               <span className={cn("flex-1 truncate text-sm", completed && "text-muted-foreground line-through")}>
                 {task.title}
               </span>

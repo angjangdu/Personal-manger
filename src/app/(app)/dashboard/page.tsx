@@ -1,4 +1,6 @@
-﻿import { PageHeader } from "@/components/layout/page-header";
+﻿"use client";
+
+import { PageHeader } from "@/components/layout/page-header";
 import { CurrentActivityCard } from "@/components/dashboard/current-activity-card";
 import { GoalsWidget } from "@/components/dashboard/goals-widget";
 import { GreetingCard } from "@/components/dashboard/greeting-card";
@@ -6,40 +8,58 @@ import { HabitsWidget } from "@/components/dashboard/habits-widget";
 import { ProjectsWidget } from "@/components/dashboard/projects-widget";
 import { TodaysScheduleCard } from "@/components/dashboard/todays-schedule-card";
 import { TodaysTasksCard } from "@/components/dashboard/todays-tasks-card";
-import { getDashboardData } from "@/services/dashboard";
+import { useAppState } from "@/hooks/use-app-state";
+import {
+  selectFocusMinutesToday,
+  selectProjectTaskCounts,
+  selectTodaysTasks,
+} from "@/lib/selectors";
 
 export default function DashboardPage() {
-  const data = getDashboardData();
-  const tasksDone = data.todaysTasks.filter((t) => t.status === "completed").length;
+  const state = useAppState();
+
+  const todaysTasks = selectTodaysTasks(state);
+  const tasksDone = todaysTasks.filter((t) => t.status === "completed").length;
+  const currentActivity =
+    [...state.activities]
+      .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
+      .find((a) => !a.endedAt) ?? null;
+  const todaysSchedule = [...state.calendarEvents].sort(
+    (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()
+  );
 
   return (
     <>
-      <PageHeader
-        title="Dashboard"
-        description="Your command center for today."
-      />
+      <PageHeader title="Dashboard" description="Your command center for today." />
       <div className="grid gap-4">
         <section className="grid gap-4 md:grid-cols-2">
           <GreetingCard
             tasksDone={tasksDone}
-            tasksTotal={data.todaysTasks.length}
-            focusMinutes={data.focusMinutesToday}
+            tasksTotal={todaysTasks.length}
+            focusMinutes={selectFocusMinutesToday(state)}
           />
-          <CurrentActivityCard activity={data.currentActivity} />
+          <CurrentActivityCard activity={currentActivity} />
         </section>
 
         <section className="grid gap-4 lg:grid-cols-3">
-          <TodaysTasksCard tasks={data.todaysTasks} className="lg:col-span-2" />
-          <TodaysScheduleCard events={data.todaysSchedule} />
+          <TodaysTasksCard tasks={todaysTasks} className="lg:col-span-2" />
+          <TodaysScheduleCard events={todaysSchedule} />
         </section>
 
         <section className="grid gap-4 lg:grid-cols-3">
           <div className="rounded-xl border p-4">
-            <GoalsWidget goals={data.activeGoals} />
+            <GoalsWidget goals={state.goals.filter((g) => !g.archived)} />
           </div>
-          <ProjectsWidget projects={data.activeProjects} taskCounts={data.projectTaskCounts} className="lg:col-span-2" />
+          <ProjectsWidget
+            projects={state.projects.filter((p) => !p.archived)}
+            taskCounts={selectProjectTaskCounts(state)}
+            className="lg:col-span-2"
+          />
           <div className="rounded-xl border p-4">
-            <HabitsWidget habits={data.habits} completedHabitIds={data.habitLogsToday} />
+            <HabitsWidget
+              habits={state.habits.filter((h) => !h.archived)}
+              completedHabitIds={state.habitLogs.map((log) => log.habitId)}
+            />
           </div>
         </section>
       </div>
