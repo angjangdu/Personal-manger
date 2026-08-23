@@ -3,6 +3,7 @@ import {
   BarChart3,
   BookOpen,
   Calendar,
+  CalendarClock,
   FolderKanban,
   LayoutDashboard,
   ListTodo,
@@ -29,6 +30,7 @@ export const primaryNav: NavItem[] = [
 ];
 
 export const secondaryNav: NavItem[] = [
+  { title: "Planner", href: "/planner", icon: CalendarClock },
   { title: "Habits", href: "/habits", icon: Repeat },
   { title: "Study", href: "/study", icon: BookOpen },
   { title: "Notes", href: "/notes", icon: Notebook },

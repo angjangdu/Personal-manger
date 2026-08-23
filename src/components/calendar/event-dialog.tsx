@@ -227,6 +227,57 @@ function EventFormFields({
           </Select>
         </div>
 
+        {event && !allDay ? (
+          <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+            <span className="text-muted-foreground text-xs">Quick move:</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                appStore.updateEvent(event.id, {
+                  startAt: new Date(new Date(event.startAt).getTime() - 1800000).toISOString(),
+                  endAt: new Date(new Date(event.endAt).getTime() - 1800000).toISOString(),
+                });
+                toast("Moved 30 minutes earlier");
+                onClose();
+              }}
+            >
+              −30m
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                appStore.updateEvent(event.id, {
+                  startAt: new Date(new Date(event.startAt).getTime() + 1800000).toISOString(),
+                  endAt: new Date(new Date(event.endAt).getTime() + 1800000).toISOString(),
+                });
+                toast("Moved 30 minutes later");
+                onClose();
+              }}
+            >
+              +30m
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                appStore.updateEvent(event.id, {
+                  startAt: new Date(new Date(event.startAt).getTime() + 86400000).toISOString(),
+                  endAt: new Date(new Date(event.endAt).getTime() + 86400000).toISOString(),
+                });
+                toast("Moved to tomorrow");
+                onClose();
+              }}
+            >
+              Tomorrow
+            </Button>
+          </div>
+        ) : null}
+
         <DialogFooter className={event ? "justify-between sm:justify-between" : ""}>
           {event ? (
             <Button

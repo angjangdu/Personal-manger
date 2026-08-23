@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { CalendarPlus, ListPlus, Play } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ export function GreetingCard({
 }: GreetingCardProps) {
   // Slow tick — greeting/date only change at minute granularity.
   const now = new Date(useNow(60000));
+  const router = useRouter();
   const percent =
     tasksTotal > 0 ? Math.round((tasksDone / tasksTotal) * 100) : 0;
 
@@ -63,7 +65,7 @@ export function GreetingCard({
           <Button size="sm" variant="secondary" onClick={stub("Activity tracking", 10)}>
             <Play aria-hidden /> Start Activity
           </Button>
-          <Button size="sm" variant="ghost" onClick={stub("Daily planner", 9)}>
+          <Button size="sm" variant="ghost" onClick={() => router.push("/planner")}>
             <CalendarPlus aria-hidden /> Plan Day
           </Button>
         </div>
