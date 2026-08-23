@@ -4,6 +4,7 @@ import type {
   Goal,
   Habit,
   HabitLog,
+  Note,
   Project,
   StudySession,
   StudySubject,
@@ -319,4 +320,33 @@ export const mockStudySessions: StudySession[] = [
   { id: "sess-1", subjectId: "subj-physics", topicId: "top-lagrangian", type: "study", date: iso(new Date(now.getTime() - 3 * 86400000)), durationMinutes: 90, notes: "Worked through Euler-Lagrange derivations.", createdAt: iso(new Date(now.getTime() - 3 * 86400000)) },
   { id: "sess-2", subjectId: "subj-calculus", topicId: "top-series", type: "revision", date: iso(new Date(now.getTime() - 2 * 86400000)), durationMinutes: 45, createdAt: iso(new Date(now.getTime() - 2 * 86400000)) },
   { id: "sess-3", subjectId: "subj-physics", topicId: "top-maxwell", type: "study", date: iso(todayAt(16, 0)), durationMinutes: 60, createdAt: iso(todayAt(16, 0)) },
+];
+
+// ── Notes ──────────────────────────────────────────────────────────────────
+
+export const mockNotes: Note[] = [
+  {
+    id: "note-lagrangian",
+    title: "Lagrangian — key results",
+    content:
+      "# Lagrangian mechanics cheat sheet\n\n**Euler–Lagrange:**\n\n```\nd/dt(∂L/∂q̇) − ∂L/∂q = 0\n```\n\n- Generalized momentum: `p = ∂L/∂q̇`\n- Cyclic coordinates → conserved conjugate momenta\n- Constraint forces vanish in generalized coords\n\nSee problem set 4, exercises 1–8.",
+    tagIds: ["study"],
+    linkedTaskIds: ["task-1"],
+    linkedProjectIds: ["proj-physics"],
+    linkedStudyTopicId: "top-lagrangian",
+    createdAt: iso(new Date(now.getTime() - 4 * 86400000)),
+    updatedAt: iso(new Date(now.getTime() - 1 * 86400000)),
+  },
+  {
+    id: "note-planning",
+    title: "Weekly planning ritual",
+    content:
+      "# Weekly planning\n\n1. Review goals progress\n2. Pick **three** big rocks for next week\n3. Time-block deep work first\n4. Leave ~20% slack for surprises\n\n*Rule: plan less, finish more.*",
+    tagIds: ["planning"],
+    linkedTaskIds: [],
+    linkedProjectIds: ["proj-os"],
+    linkedStudyTopicId: undefined,
+    createdAt: iso(new Date(now.getTime() - 9 * 86400000)),
+    updatedAt: iso(new Date(now.getTime() - 9 * 86400000)),
+  },
 ];

@@ -5,6 +5,7 @@ import type {
   Habit,
   HabitLog,
   Milestone,
+  Note,
   Project,
   StudySession,
   StudySubject,
@@ -19,6 +20,7 @@ import {
   mockGoals,
   mockHabitLogs,
   mockHabits,
+  mockNotes,
   mockProjects,
   mockStudySessions,
   mockStudySubjects,
@@ -50,6 +52,7 @@ export interface AppState {
   studySubjects: StudySubject[];
   studyTopics: StudyTopic[];
   studySessions: StudySession[];
+  notes: Note[];
 }
 
 export interface TaskInput {
@@ -117,6 +120,15 @@ export interface SessionInput {
   notes?: string;
 }
 
+export interface NoteInput {
+  title: string;
+  content: string;
+  tagIds: string[];
+  linkedTaskIds?: string[];
+  linkedProjectIds?: string[];
+  linkedStudyTopicId?: string;
+}
+
 function seedState(): AppState {
   return {
     tasks: mockTasks,
@@ -130,6 +142,7 @@ function seedState(): AppState {
     studySubjects: mockStudySubjects,
     studyTopics: mockStudyTopics,
     studySessions: mockStudySessions,
+    notes: mockNotes,
   };
 }
 
@@ -818,6 +831,52 @@ class AppStore {
     this.set((s) => ({
       ...s,
       studySessions: s.studySessions.filter((session) => session.id !== id),
+    }));
+  }
+
+  // ── Notes ────────────────────────────────────────────────────────────────
+
+  addNote(input: NoteInput): Note {
+    const nowIso = new Date().toISOString();
+    const note: Note = {
+      id: crypto.randomUUID(),
+      title: input.title.trim() || "Untitled",
+      content: input.content,
+      tagIds: input.tagIds,
+      linkedTaskIds: input.linkedTaskIds ?? [],
+      linkedProjectIds: input.linkedProjectIds ?? [],
+      linkedStudyTopicId: input.linkedStudyTopicId || undefined,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+    this.set((s) => ({ ...s, notes: [note, ...s.notes] }));
+    return note;
+  }
+
+  updateNote(id: string, patch: Partial<NoteInput>) {
+    this.set((s) => ({
+      ...s,
+      notes: s.notes.map((note) =>
+        note.id === id
+          ? {
+              ...note,
+              ...patch,
+              title: patch.title?.trim() || note.title,
+              linkedStudyTopicId:
+                patch.linkedStudyTopicId !== undefined
+                  ? patch.linkedStudyTopicId || undefined
+                  : note.linkedStudyTopicId,
+              updatedAt: new Date().toISOString(),
+            }
+          : note
+      ),
+    }));
+  }
+
+  deleteNote(id: string) {
+    this.set((s) => ({
+      ...s,
+      notes: s.notes.filter((note) => note.id !== id),
     }));
   }
 }
