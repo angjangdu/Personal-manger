@@ -50,6 +50,8 @@ interface TaskFormDialogProps {
   task?: Task;
   /** Preset project for newly created tasks (e.g. adding from a project page). */
   defaultProjectId?: string;
+  /** Preset goal for newly created tasks (e.g. adding from a goal page). */
+  defaultGoalId?: string;
 }
 
 export function TaskFormDialog({
@@ -57,6 +59,7 @@ export function TaskFormDialog({
   onOpenChange,
   task,
   defaultProjectId,
+  defaultGoalId,
 }: TaskFormDialogProps) {
   if (!open) return null;
   return (
@@ -67,6 +70,7 @@ export function TaskFormDialog({
           key={task?.id ?? "__new__"}
           task={task}
           defaultProjectId={defaultProjectId}
+          defaultGoalId={defaultGoalId}
           onClose={() => onOpenChange(false)}
         />
       ) : null}
@@ -77,10 +81,11 @@ export function TaskFormDialog({
 interface TaskFormFieldsProps {
   task?: Task;
   defaultProjectId?: string;
+  defaultGoalId?: string;
   onClose: () => void;
 }
 
-function TaskFormFields({ task, defaultProjectId, onClose }: TaskFormFieldsProps) {
+function TaskFormFields({ task, defaultProjectId, defaultGoalId, onClose }: TaskFormFieldsProps) {
   const state = useAppState();
 
   const [title, setTitle] = useState(task?.title ?? "");
@@ -93,7 +98,7 @@ function TaskFormFields({ task, defaultProjectId, onClose }: TaskFormFieldsProps
     task?.estimatedDurationMinutes ? String(task.estimatedDurationMinutes) : ""
   );
   const [projectId, setProjectId] = useState(task?.projectId ?? defaultProjectId ?? "");
-  const [goalId, setGoalId] = useState(task?.goalId ?? "");
+  const [goalId, setGoalId] = useState(task?.goalId ?? defaultGoalId ?? "");
   const [tagIds, setTagIds] = useState<string[]>(task?.tagIds ?? []);
   const [subtaskDraft, setSubtaskDraft] = useState("");
   const [newSubtasks, setNewSubtasks] = useState<{ id: string; title: string }[]>([]);

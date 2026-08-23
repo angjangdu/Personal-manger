@@ -4,6 +4,7 @@ import type {
   Goal,
   Habit,
   HabitLog,
+  Milestone,
   Project,
   Subtask,
   Tag,
@@ -60,6 +61,13 @@ export interface ProjectInput {
   description?: string;
   color?: string;
   goalId?: string;
+  deadline?: string;
+}
+
+export interface GoalInput {
+  title: string;
+  description?: string;
+  category?: string;
   deadline?: string;
 }
 
@@ -312,6 +320,122 @@ class AppStore {
         task.projectId === id
           ? { ...task, projectId: undefined, updatedAt: nowIso }
           : task
+      ),
+    }));
+  }
+
+  // ── Goals ────────────────────────────────────────────────────────────────
+
+  addGoal(input: GoalInput): Goal {
+    const nowIso = new Date().toISOString();
+    const goal: Goal = {
+      id: crypto.randomUUID(),
+      title: input.title.trim(),
+      description: input.description?.trim() || undefined,
+      category: input.category?.trim() || undefined,
+      deadline: input.deadline || undefined,
+      milestones: [],
+      projectIds: [],
+      progressPercent: 0,
+      archived: false,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+    this.set((s) => ({ ...s, goals: [goal, ...s.goals] }));
+    return goal;
+  }
+
+  updateGoal(id: string, patch: Partial<GoalInput> & { archived?: boolean }) {
+    this.set((s) => ({
+      ...s,
+      goals: s.goals.map((goal) =>
+        goal.id === id
+          ? {
+              ...goal,
+              ...patch,
+              title: patch.title?.trim() || goal.title,
+              description: patch.description !== undefined ? patch.description?.trim() || undefined : goal.description,
+              category: patch.category !== undefined ? patch.category?.trim() || undefined : goal.category,
+              deadline: patch.deadline !== undefined ? patch.deadline || undefined : goal.deadline,
+              updatedAt: new Date().toISOString(),
+            }
+          : goal
+      ),
+    }));
+  }
+
+  setGoalArchived(id: string, archived: boolean) {
+    this.updateGoal(id, { archived });
+  }
+
+  /** Deletes a goal and detaches its projects and tasks (both are kept). */
+  deleteGoal(id: string) {
+    const nowIso = new Date().toISOString();
+    this.set((s) => ({
+      ...s,
+      goals: s.goals.filter((goal) => goal.id !== id),
+      projects: s.projects.map((project) =>
+        project.goalId === id
+          ? { ...project, goalId: undefined, updatedAt: nowIso }
+          : project
+      ),
+      tasks: s.tasks.map((task) =>
+        task.goalId === id ? { ...task, goalId: undefined, updatedAt: nowIso } : task
+      ),
+    }));
+  }
+
+  // ── Milestones ───────────────────────────────────────────────────────────
+
+  addMilestone(goalId: string, title: string) {
+    const trimmed = title.trim();
+    if (!trimmed) return;
+    const milestone: Milestone = {
+      id: crypto.randomUUID(),
+      goalId,
+      title: trimmed,
+      createdAt: new Date().toISOString(),
+    };
+    this.set((s) => ({
+      ...s,
+      goals: s.goals.map((goal) =>
+        goal.id === goalId
+          ? { ...goal, milestones: [...goal.milestones, milestone], updatedAt: new Date().toISOString() }
+          : goal
+      ),
+    }));
+  }
+
+  toggleMilestone(goalId: string, milestoneId: string) {
+    this.set((s) => ({
+      ...s,
+      goals: s.goals.map((goal) =>
+        goal.id === goalId
+          ? {
+              ...goal,
+              milestones: goal.milestones.map((m) =>
+                m.id === milestoneId
+                  ? { ...m, completedAt: m.completedAt ? undefined : new Date().toISOString() }
+                  : m
+              ),
+              updatedAt: new Date().toISOString(),
+            }
+          : goal
+      ),
+    }));
+  }
+
+  deleteMilestone(goalId: string, milestoneId: string) {
+    this.set((s) => ({
+      ...s,
+      goals: s.goals.map((goal) =>
+        goal.id === goalId
+          ? {
+              ...goal,
+              milestones: goal.milestones.filter((m) => m.id !== milestoneId),
+              updatedAt: new Date().toISOString(),
+            }
+          : goal
       ),
     }));
   }

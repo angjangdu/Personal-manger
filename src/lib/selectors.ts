@@ -158,3 +158,45 @@ export function selectProjectTaskCounts(state: AppState) {
   }
   return counts;
 }
+
+/**
+ * Derives goal progress from real work instead of a manual slider:
+ * the average of available signals — milestone completion, linked
+ * projects' task completion, and directly-linked task completion.
+ */
+export function selectGoalProgress(state: AppState, goal: AppState["goals"][number]): number {
+  const ratios: number[] = [];
+
+  if (goal.milestones.length > 0) {
+    ratios.push(
+      goal.milestones.filter((m) => m.completedAt).length / goal.milestones.length
+    );
+  }
+
+  const linkedProjects = state.projects.filter(
+    (project) => project.goalId === goal.id && !project.archived
+  );
+  for (const project of linkedProjects) {
+    const tasks = state.tasks.filter((task) => task.projectId === project.id);
+    if (tasks.length > 0) {
+      ratios.push(
+        tasks.filter((task) => task.status === "completed").length / tasks.length
+      );
+    }
+  }
+
+  const directTasks = state.tasks.filter(
+    (task) => task.goalId === goal.id &&
+      !task.projectId &&
+      task.status !== "cancelled"
+  );
+  if (directTasks.length > 0) {
+    ratios.push(
+      directTasks.filter((task) => task.status === "completed").length /
+        directTasks.length
+    );
+  }
+
+  if (ratios.length === 0) return 0;
+  return Math.round((ratios.reduce((a, b) => a + b, 0) / ratios.length) * 100);
+}
