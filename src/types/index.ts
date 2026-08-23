@@ -82,6 +82,7 @@ export interface Activity {
   /** Always computed from timestamps, never trusted from a client timer. */
   durationMinutes?: number;
   notes?: string;
+  createdAt: string;
 }
 
 export interface Habit {
