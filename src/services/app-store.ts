@@ -79,6 +79,14 @@ export interface EventInput {
   taskId?: string;
 }
 
+export interface HabitInput {
+  name: string;
+  description?: string;
+  schedule: Habit["schedule"];
+  /** JS day indices (0=Sun…6=Sat) when schedule is weekly. */
+  weekdays?: number[];
+}
+
 function seedState(): AppState {
   return {
     tasks: mockTasks,
@@ -591,6 +599,83 @@ class AppStore {
           : activity
       ),
     }));
+  }
+
+  // ── Habits ───────────────────────────────────────────────────────────────
+
+  addHabit(input: HabitInput): Habit {
+    const nowIso = new Date().toISOString();
+    const habit: Habit = {
+      id: crypto.randomUUID(),
+      name: input.name.trim(),
+      description: input.description?.trim() || undefined,
+      schedule: input.schedule,
+      weekdays:
+        input.schedule === "weekly"
+          ? (input.weekdays?.length ? [...input.weekdays].sort() : [1])
+          : undefined,
+      archived: false,
+      createdAt: nowIso,
+    };
+    this.set((s) => ({ ...s, habits: [habit, ...s.habits] }));
+    return habit;
+  }
+
+  updateHabit(id: string, patch: Partial<HabitInput> & { archived?: boolean }) {
+    this.set((s) => ({
+      ...s,
+      habits: s.habits.map((habit) =>
+        habit.id === id
+          ? {
+              ...habit,
+              ...patch,
+              name: patch.name?.trim() || habit.name,
+              description: patch.description !== undefined ? patch.description?.trim() || undefined : habit.description,
+              weekdays:
+                patch.schedule === "weekly" || (patch.schedule === undefined && habit.schedule === "weekly")
+                  ? patch.weekdays && patch.weekdays.length > 0
+                    ? [...patch.weekdays].sort()
+                    : habit.weekdays
+                  : patch.schedule === "daily"
+                    ? undefined
+                    : habit.weekdays,
+            }
+          : habit
+      ),
+    }));
+  }
+
+  /** Deletes a habit and its logs. */
+  deleteHabit(id: string) {
+    this.set((s) => ({
+      ...s,
+      habits: s.habits.filter((habit) => habit.id !== id),
+      habitLogs: s.habitLogs.filter((log) => log.habitId !== id),
+    }));
+  }
+
+  /** Toggles completion of a habit for a given day (defaults to today). */
+  toggleHabitLog(habitId: string, day: Date = new Date()) {
+    const d = new Date(day);
+    d.setHours(0, 0, 0, 0);
+    const dayIso = d.toISOString();
+    const existing = this.state.habitLogs.find(
+      (log) => log.habitId === habitId && log.completedOn.slice(0, 10) === dayIso.slice(0, 10)
+    );
+    if (existing) {
+      this.set((s) => ({
+        ...s,
+        habitLogs: s.habitLogs.filter((log) => log.id !== existing.id),
+      }));
+    } else {
+      const log: HabitLog = {
+        id: crypto.randomUUID(),
+        habitId,
+        completedOn: dayIso,
+        createdAt: new Date().toISOString(),
+      };
+      this.set((s) => ({ ...s, habitLogs: [...s.habitLogs, log] }));
+    }
   }
 }
 

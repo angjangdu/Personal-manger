@@ -9,14 +9,18 @@ import { ProjectsWidget } from "@/components/dashboard/projects-widget";
 import { TodaysScheduleCard } from "@/components/dashboard/todays-schedule-card";
 import { TodaysTasksCard } from "@/components/dashboard/todays-tasks-card";
 import { useAppState } from "@/hooks/use-app-state";
+import { useNow } from "@/hooks/use-now";
 import {
   selectFocusMinutesToday,
   selectProjectTaskCounts,
   selectTodaysTasks,
 } from "@/lib/selectors";
+import { isHabitDueOn } from "@/lib/habit-utils";
 
 export default function DashboardPage() {
   const state = useAppState();
+  const nowMs = useNow(60000);
+  const now = new Date(nowMs);
 
   const todaysTasks = selectTodaysTasks(state);
   const tasksDone = todaysTasks.filter((t) => t.status === "completed").length;
@@ -57,8 +61,7 @@ export default function DashboardPage() {
           />
           <div className="rounded-xl border p-4">
             <HabitsWidget
-              habits={state.habits.filter((h) => !h.archived)}
-              completedHabitIds={state.habitLogs.map((log) => log.habitId)}
+              habits={state.habits.filter((h) => !h.archived && isHabitDueOn(h, now))}
             />
           </div>
         </section>
