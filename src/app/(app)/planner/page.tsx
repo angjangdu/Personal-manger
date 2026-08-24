@@ -20,6 +20,7 @@ import {
   type EventDialogPrefill,
 } from "@/components/calendar/event-dialog";
 import { TaskFormDialog } from "@/components/tasks/task-form-dialog";
+import { SuggestionsPanel } from "@/components/planner/suggestions-panel";
 import { appStore } from "@/services/app-store";
 import { useAppState } from "@/hooks/use-app-state";
 import { useNow } from "@/hooks/use-now";
@@ -216,6 +217,11 @@ export default function PlannerPage() {
           aria-label="Pick a date"
         />
         <h3 className="text-sm font-semibold">{dayStart.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</h3>
+      </div>
+
+      {/* Schedule suggestions (accept/dismiss — nothing auto-books) */}
+      <div className="mb-4">
+        <SuggestionsPanel />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[340px_1fr]">

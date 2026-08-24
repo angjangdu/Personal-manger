@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClock, MoreHorizontal, Pencil, Repeat, Trash2, Timer, XCircle } from "lucide-react";
+import { CalendarClock, MoreHorizontal, Pencil, Repeat, Star, Trash2, Timer, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -89,6 +89,9 @@ export function TaskRow({ task, onEdit }: TaskRowProps) {
           </span>
           {(task.repeat || task.virtual) && (
             <Repeat className="text-muted-foreground size-3.5 shrink-0" aria-label="Recurring" />
+          )}
+          {task.mit && (
+            <Star className="size-3.5 shrink-0 fill-yellow-400 text-yellow-500" aria-label="Most important task" />
           )}
           <Badge variant="outline" className={cn("shrink-0 text-[10px]", PRIORITY_STYLES[task.priority])}>
             {task.priority}

@@ -9,6 +9,7 @@ import { ProjectsWidget } from "@/components/dashboard/projects-widget";
 import { TodaysScheduleCard } from "@/components/dashboard/todays-schedule-card";
 import { TodaysTasksCard } from "@/components/dashboard/todays-tasks-card";
 import { TaskFormDialog } from "@/components/tasks/task-form-dialog";
+import { DayBriefCard } from "@/components/dashboard/day-brief-card";
 import { useAppState } from "@/hooks/use-app-state";
 import { useNow } from "@/hooks/use-now";
 import {
@@ -38,6 +39,12 @@ export default function DashboardPage() {
   return (
     <>
       <PageHeader title="Dashboard" description="Your command center for today." />
+
+      {/* Morning brief: today's tasks · most important task · free time */}
+      <div className="mb-4">
+        <DayBriefCard />
+      </div>
+
       <div className="grid gap-4">
         <section className="grid gap-4 md:grid-cols-2">
           <GreetingCard

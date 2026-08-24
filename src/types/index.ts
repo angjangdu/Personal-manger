@@ -59,6 +59,8 @@ export interface Task {
   tagIds: string[];
   subtasks: Subtask[];
   repeat?: RecurrenceRule;
+  /** Most Important Task — highlighted on the Dashboard. */
+  mit?: boolean;
   completedAt?: string;
   createdAt: string;
   updatedAt: string;
@@ -175,6 +177,14 @@ export interface RescheduleLog {
     | "other";
   note?: string;
   createdAt: string;
+}
+
+/** Local user preferences. */
+export interface UserSettings {
+  /** "HH:MM" — when the user goes to sleep. */
+  sleepStart: string;
+  /** "HH:MM" — when the user wakes up. */
+  sleepEnd: string;
 }
 
 export interface Tag {

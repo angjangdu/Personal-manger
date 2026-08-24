@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ListPlus, X } from "lucide-react";
+import { ListPlus, Star, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { appStore, type TaskInput } from "@/services/app-store";
@@ -163,6 +164,7 @@ function TaskFormFields({ task, defaultProjectId, defaultGoalId, onClose }: Task
   const [subtaskDraft, setSubtaskDraft] = useState("");
   const [newSubtasks, setNewSubtasks] = useState<{ id: string; title: string }[]>([]);
   const [showDetails, setShowDetails] = useState(Boolean(task));
+  const [mit, setMit] = useState(task?.mit ?? false);
   const [repeatChoice, setRepeatChoice] = useState<RepeatChoice>(
     ruleToChoice(task?.repeat)
   );
@@ -190,6 +192,7 @@ function TaskFormFields({ task, defaultProjectId, defaultGoalId, onClose }: Task
       goalId: goalId === "none" ? "" : goalId,
       tagIds,
       repeat: choiceToRule(repeatChoice, repeatWeekdays),
+      mit,
     };
 
     if (editingTask) {
@@ -332,7 +335,19 @@ function TaskFormFields({ task, defaultProjectId, defaultGoalId, onClose }: Task
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+        <div className="flex items-center justify-between rounded-lg border p-3">
+          <div>
+            <p className="flex items-center gap-1.5 text-sm font-medium">
+              <Star className="size-4 text-yellow-500" aria-hidden /> Most Important Task
+            </p>
+            <p className="text-muted-foreground text-xs">
+              Highlighted on the Dashboard
+            </p>
+          </div>
+          <Switch checked={mit} onCheckedChange={setMit} aria-label="Most important task" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Project</Label>
                 <Select

@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useTheme } from "next-themes";
-import { Download, Moon, RotateCcw, Sun } from "lucide-react";
+import { Download, BedDouble, Moon, RotateCcw, Sun } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { appStore, STORAGE_KEY } from "@/services/app-store";
+import { useAppState } from "@/hooks/use-app-state";
 
 const THEME_OPTIONS = [
   { value: "light", label: "Light" },
@@ -30,6 +32,7 @@ const THEME_OPTIONS = [
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
+  const state = useAppState();
 
   function exportData() {
     const data = JSON.stringify(appStore.getState(), null, 2);
@@ -94,9 +97,38 @@ export default function SettingsPage() {
 
             <Separator className="my-4" />
 
+            <div className="space-y-3">
+              <p className="text-sm font-medium">Sleep schedule</p>
+              <p className="text-muted-foreground text-xs">
+                Free-time calculations exclude your sleep hours (review §4).
+              </p>
+              <div className="flex flex-wrap items-center gap-3" suppressHydrationWarning>
+                <BedDouble className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                <label className="flex items-center gap-2 text-sm">
+                  Sleep at
+                  <Input
+                    type="time"
+                    value={state.settings.sleepStart}
+                    onChange={(e) => appStore.updateSettings({ sleepStart: e.target.value })}
+                    className="w-[110px]"
+                  />
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  Wake at
+                  <Input
+                    type="time"
+                    value={state.settings.sleepEnd}
+                    onChange={(e) => appStore.updateSettings({ sleepEnd: e.target.value })}
+                    className="w-[110px]"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <Separator className="my-4" />
+
             <p className="text-muted-foreground text-xs">
-              Planning-window and sleep-schedule settings arrive with the free-time
-              model (next iteration).
+              More personalization arrives with later iterations.
             </p>
           </CardContent>
         </Card>

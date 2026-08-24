@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   Activity,
   CalendarEvent,
   DailyReview,
@@ -16,6 +16,7 @@
   Subtask,
   Tag,
   Task,
+  UserSettings,
 } from "@/types";
 import { parseVirtualId } from "@/lib/recurrence";
 import {
@@ -61,6 +62,8 @@ export interface AppState {
   /** Per-occurrence completions/skips for recurring tasks: templateId → dateKey → override. */
   occurrenceOverrides: Record<string, Record<string, OccurrenceOverride>>;
   rescheduleLogs: RescheduleLog[];
+  /** Local preferences (sleep window, etc.). */
+  settings: UserSettings;
 }
 
 export interface TaskInput {
@@ -75,6 +78,7 @@ export interface TaskInput {
   goalId?: string;
   tagIds: string[];
   repeat?: Task["repeat"];
+  mit?: boolean;
 }
 
 export interface ProjectInput {
@@ -157,6 +161,7 @@ function seedState(): AppState {
     dailyReviews: [],
     occurrenceOverrides: {},
     rescheduleLogs: [],
+    settings: { sleepStart: "23:00", sleepEnd: "07:00" },
   };
 }
 
@@ -229,6 +234,7 @@ class AppStore {
       tagIds: input.tagIds,
       subtasks: [],
       repeat: input.repeat,
+      mit: input.mit ?? false,
       createdAt: nowIso,
       updatedAt: nowIso,
     };
@@ -266,6 +272,7 @@ class AppStore {
               goalId: patch.goalId || undefined,
               tagIds: patch.tagIds ?? task.tagIds,
               repeat: patch.repeat !== undefined ? patch.repeat : task.repeat,
+              mit: patch.mit !== undefined ? patch.mit : task.mit,
               updatedAt: new Date().toISOString(),
             }
           : task
@@ -629,6 +636,11 @@ class AppStore {
     this.set((s) => ({ ...s, rescheduleLogs: [entry, ...s.rescheduleLogs] }));
   }
 
+  // ── Settings ─────────────────────────────────────────────────────────────
+
+  updateSettings(patch: Partial<UserSettings>) {
+    this.set((s) => ({ ...s, settings: { ...s.settings, ...patch } }));
+  }
   // â”€â”€ Activities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Durations are always computed from timestamps, never trusted from a
   // client timer (architecture doc Â§9).
