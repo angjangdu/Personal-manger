@@ -59,9 +59,23 @@ interface TimeGridProps {
   nowMs: number;
   onItemClick: (item: CalendarItem) => void;
   onSlotClick?: (date: Date, startMinutes: number) => void;
+  /** Drag-and-drop move support for event blocks. */
+  onDropMove?: (
+    itemId: string,
+    durationMin: number,
+    date: Date,
+    startMinutes: number
+  ) => void;
 }
 
-export function TimeGrid({ days, items, nowMs, onItemClick, onSlotClick }: TimeGridProps) {
+export function TimeGrid({
+  days,
+  items,
+  nowMs,
+  onItemClick,
+  onSlotClick,
+  onDropMove,
+}: TimeGridProps) {
   const byDay = useMemo(() => {
     const map = new Map<string, CalendarItem[]>();
     for (const day of days) map.set(day.toDateString(), []);
@@ -155,6 +169,25 @@ export function TimeGrid({ days, items, nowMs, onItemClick, onSlotClick }: TimeG
                   const minutes = Math.max(0, Math.floor((y / HOUR_HEIGHT) * 60 / 30) * 30);
                   onSlotClick(day, minutes);
                 }}
+                onDragOver={(e) => {
+                  if (onDropMove) e.preventDefault();
+                }}
+                onDrop={(e) => {
+                  if (!onDropMove) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  try {
+                    const payload = JSON.parse(
+                      e.dataTransfer.getData("text/plain")
+                    ) as { id: string; durationMin: number };
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const y = e.clientY - rect.top;
+                    const minutes = Math.max(0, Math.floor((y / HOUR_HEIGHT) * 60 / 30) * 30);
+                    onDropMove(payload.id, payload.durationMin, day, minutes);
+                  } catch {
+                    // Malformed payload — ignore.
+                  }
+                }}
                 role={onSlotClick ? "button" : undefined}
                 aria-label={`Add event on ${day.toDateString()}`}
               >
@@ -173,13 +206,31 @@ export function TimeGrid({ days, items, nowMs, onItemClick, onSlotClick }: TimeG
                     <button
                       key={`${item.kind}-${item.id}`}
                       type="button"
+                      draggable={item.kind === "event"}
+                      onDragStart={(e) => {
+                        if (item.kind !== "event") return;
+                        e.dataTransfer.setData(
+                          "text/plain",
+                          JSON.stringify({
+                            id: item.id,
+                            durationMin: Math.max(
+                              15,
+                              Math.round((item.endMs - item.startMs) / 60000)
+                            ),
+                          })
+                        );
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
                       onClick={(e) => {
                         e.stopPropagation();
                         onItemClick(item);
                       }}
                       className={cn(
                         "absolute overflow-hidden rounded-md border px-1.5 py-0.5 text-left text-[11px] leading-tight transition-colors",
-                        item.className
+                        item.className,
+                        item.kind === "event" &&
+                          onDropMove &&
+                          "cursor-grab active:cursor-grabbing"
                       )}
                       style={{
                         top: startPos,

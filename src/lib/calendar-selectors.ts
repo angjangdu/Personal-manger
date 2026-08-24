@@ -1,5 +1,10 @@
 import type { AppState } from "@/services/app-store";
-import type { Activity, CalendarEvent, Task } from "@/types";
+import type {
+  Activity,
+  CalendarEvent,
+  EventCategory,
+  Task,
+} from "@/types";
 import { isSameDay } from "@/lib/date-utils";
 import { expandEvents, expandTasks } from "@/lib/recurrence";
 
@@ -17,14 +22,22 @@ export interface CalendarItem {
   className: string;
   done?: boolean;
   running?: boolean;
+  category?: EventCategory;
   source: CalendarEvent | Task | Activity;
 }
 
 const DEFAULT_TASK_BLOCK_MINUTES = 30;
 const RUNNING_ACTIVITY_MIN_MINUTES = 15;
 
-const EVENT_CLASSES =
-  "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/40";
+export const EVENT_CATEGORY_CLASSES: Record<EventCategory, string> = {
+  general: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/40",
+  class: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/40",
+  work: "bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/40",
+  study: "bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-500/40",
+  project: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40",
+  personal: "bg-pink-500/15 text-pink-700 dark:text-pink-300 border-pink-500/40",
+};
+
 const TASK_CLASSES =
   "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40";
 const TASK_DONE_CLASSES =
@@ -68,6 +81,7 @@ export function selectCalendarItems(
     const s = new Date(event.startAt).getTime();
     const e = event.allDay ? s : new Date(event.endAt).getTime();
     if (s > endMs || e < startMs) continue;
+    const category = event.category ?? "general";
     items.push({
       kind: "event",
       id: event.id,
@@ -75,7 +89,8 @@ export function selectCalendarItems(
       startMs: Math.max(s, startMs),
       endMs: Math.min(Math.max(e, s + 60000), endMs),
       allDay: event.allDay,
-      className: EVENT_CLASSES,
+      className: EVENT_CATEGORY_CLASSES[category],
+      category,
       source: event,
     });
   }
