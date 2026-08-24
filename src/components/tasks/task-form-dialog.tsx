@@ -25,7 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { appStore, type TaskInput } from "@/services/app-store";
 import { useAppState } from "@/hooks/use-app-state";
-import type { Priority, Task, TaskStatus } from "@/types";
+import type { Priority, RecurrenceRule, Task, TaskStatus } from "@/types";
 import { cn } from "@/lib/utils";
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
@@ -42,6 +42,61 @@ const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
   { value: "medium", label: "Medium" },
   { value: "low", label: "Low" },
 ];
+
+type RepeatChoice =
+  | "none"
+  | "daily"
+  | "weekdays"
+  | "weekly"
+  | "biweekly"
+  | "monthly"
+  | "yearly"
+  | "custom";
+
+const REPEAT_OPTIONS: { value: RepeatChoice; label: string }[] = [
+  { value: "none", label: "Does not repeat" },
+  { value: "daily", label: "Every day" },
+  { value: "weekdays", label: "Every weekday (Mon–Fri)" },
+  { value: "weekly", label: "Every week" },
+  { value: "biweekly", label: "Every 2 weeks" },
+  { value: "monthly", label: "Every month" },
+  { value: "yearly", label: "Every year" },
+  { value: "custom", label: "Custom days…" },
+];
+
+const WEEKDAY_CHIPS = [
+  { value: 1, label: "M" },
+  { value: 2, label: "T" },
+  { value: 3, label: "W" },
+  { value: 4, label: "T" },
+  { value: 5, label: "F" },
+  { value: 6, label: "S" },
+  { value: 0, label: "S" },
+];
+
+function ruleToChoice(rule?: RecurrenceRule): RepeatChoice {
+  if (!rule) return "none";
+  return rule.freq;
+}
+
+function choiceToRule(
+  choice: RepeatChoice,
+  weekdays: number[]
+): RecurrenceRule | undefined {
+  switch (choice) {
+    case "none":
+      return undefined;
+    case "daily":
+    case "weekdays":
+    case "weekly":
+    case "biweekly":
+    case "monthly":
+    case "yearly":
+      return { freq: choice };
+    case "custom":
+      return weekdays.length > 0 ? { freq: "custom", weekdays } : undefined;
+  }
+}
 
 interface TaskFormDialogProps {
   open: boolean;
@@ -61,14 +116,19 @@ export function TaskFormDialog({
   defaultProjectId,
   defaultGoalId,
 }: TaskFormDialogProps) {
+  const state = useAppState();
+  // Editing an occurrence edits its series (the template).
+  const template = task?.virtual
+    ? state.tasks.find((t) => t.id === task.virtual!.templateId)
+    : task;
   if (!open) return null;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* Keyed remount initializes form state per open/task without effects. */}
       {open ? (
         <TaskFormFields
-          key={task?.id ?? "__new__"}
-          task={task}
+          key={template?.id ?? "__new__"}
+          task={template}
           defaultProjectId={defaultProjectId}
           defaultGoalId={defaultGoalId}
           onClose={() => onOpenChange(false)}
@@ -103,6 +163,12 @@ function TaskFormFields({ task, defaultProjectId, defaultGoalId, onClose }: Task
   const [subtaskDraft, setSubtaskDraft] = useState("");
   const [newSubtasks, setNewSubtasks] = useState<{ id: string; title: string }[]>([]);
   const [showDetails, setShowDetails] = useState(Boolean(task));
+  const [repeatChoice, setRepeatChoice] = useState<RepeatChoice>(
+    ruleToChoice(task?.repeat)
+  );
+  const [repeatWeekdays, setRepeatWeekdays] = useState<number[]>(
+    task?.repeat?.weekdays ?? []
+  );
 
   const editingTask = task
     ? state.tasks.find((t) => t.id === task.id) ?? null
@@ -123,6 +189,7 @@ function TaskFormFields({ task, defaultProjectId, defaultGoalId, onClose }: Task
       projectId: projectId === "none" ? "" : projectId,
       goalId: goalId === "none" ? "" : goalId,
       tagIds,
+      repeat: choiceToRule(repeatChoice, repeatWeekdays),
     };
 
     if (editingTask) {
@@ -337,8 +404,63 @@ function TaskFormFields({ task, defaultProjectId, defaultGoalId, onClose }: Task
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Subtasks</Label>
+              <div className="space-y-2">
+                <Label>Repeat</Label>
+                <Select
+                  value={repeatChoice}
+                  onValueChange={(v) => setRepeatChoice(v as RepeatChoice)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {REPEAT_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {(repeatChoice === "custom" || repeatChoice === "weekly") && (
+                  <div className="flex gap-1.5 pt-1">
+                    {WEEKDAY_CHIPS.map((day, idx) => {
+                      const active = repeatWeekdays.includes(day.value);
+                      return (
+                        <button
+                          key={`${day.label}-${idx}`}
+                          type="button"
+                          aria-pressed={active}
+                          aria-label={["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][day.value]}
+                          onClick={() =>
+                            setRepeatWeekdays((prev) =>
+                              prev.includes(day.value)
+                                ? prev.filter((d) => d !== day.value)
+                                : [...prev, day.value]
+                            )
+                          }
+                          className={cn(
+                            "size-8 rounded-full border text-xs font-medium transition-colors",
+                            active
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                          )}
+                        >
+                          {day.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {repeatChoice !== "none" && (
+                  <p className="text-muted-foreground text-[11px]">
+                    Each occurrence is independent — completing or skipping one
+                    day never affects the others.
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Subtasks</Label>
               <ul className="space-y-1">
                 {subtasksList.map((sub) => (
                   <li key={sub.id} className="group flex items-center gap-2 text-sm">

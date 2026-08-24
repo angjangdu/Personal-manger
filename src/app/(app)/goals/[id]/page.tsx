@@ -34,7 +34,7 @@ import { TaskRow } from "@/components/tasks/task-row";
 import { appStore } from "@/services/app-store";
 import { useAppState } from "@/hooks/use-app-state";
 import { useNow } from "@/hooks/use-now";
-import { selectGoalProgress, sortTasksBy } from "@/lib/selectors";
+import { selectGoalProgress, selectVisibleTasks, sortTasksBy } from "@/lib/selectors";
 import type { Task } from "@/types";
 
 export default function GoalDetailPage() {
@@ -55,8 +55,11 @@ export default function GoalDetailPage() {
   );
 
   const tasks = useMemo(
-    () => sortTasksBy(state.tasks.filter((t) => t.goalId === params.id), "due"),
-    [state.tasks, params.id]
+    () => sortTasksBy(
+        selectVisibleTasks(state, now).filter((t) => t.goalId === params.id),
+        "due"
+      ),
+    [state, now, params.id]
   );
 
   if (!goal) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClock, MoreHorizontal, Pencil, Trash2, Timer } from "lucide-react";
+import { CalendarClock, MoreHorizontal, Pencil, Repeat, Trash2, Timer, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,10 +46,12 @@ export function TaskRow({ task, onEdit }: TaskRowProps) {
   const done = task.status === "completed";
   const cancelled = task.status === "cancelled";
   const subDone = task.subtasks.filter((s) => s.completed).length;
+  const templateId = task.virtual?.templateId ?? task.id;
 
   function remove() {
-    appStore.deleteTask(task.id);
-    toast("Task deleted");
+    // Occurrence menu offers Skip instead; delete here removes the series.
+    appStore.deleteTask(templateId);
+    toast("Task series deleted");
   }
 
   return (
@@ -85,6 +87,9 @@ export function TaskRow({ task, onEdit }: TaskRowProps) {
           >
             {task.title}
           </span>
+          {(task.repeat || task.virtual) && (
+            <Repeat className="text-muted-foreground size-3.5 shrink-0" aria-label="Recurring" />
+          )}
           <Badge variant="outline" className={cn("shrink-0 text-[10px]", PRIORITY_STYLES[task.priority])}>
             {task.priority}
           </Badge>
@@ -151,6 +156,11 @@ export function TaskRow({ task, onEdit }: TaskRowProps) {
                   {STATUS_LABELS[status]}
                 </DropdownMenuItem>
               ))}
+              {task.virtual && (
+                <DropdownMenuItem onClick={() => appStore.setTaskStatus(task.id, "cancelled")}>
+                  <XCircle aria-hidden /> Skip this occurrence
+                </DropdownMenuItem>
+              )}
             </DropdownMenuSubContent>
           </DropdownMenuSub>
           <DropdownMenuSeparator />

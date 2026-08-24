@@ -24,6 +24,7 @@ import { appStore } from "@/services/app-store";
 import { useAppState } from "@/hooks/use-app-state";
 import { useNow } from "@/hooks/use-now";
 import { selectCalendarItems } from "@/lib/calendar-selectors";
+import { selectVisibleTasks } from "@/lib/selectors";
 import {
   autoPlan,
   findFreeGaps,
@@ -62,17 +63,23 @@ export default function PlannerPage() {
 
   const isTerminal = (t: Task) => t.status === "completed" || t.status === "cancelled";
 
+  // Recurring occurrences participate in planning like any task.
+  const visibleTasks = selectVisibleTasks(state, minuteTick * 60000);
+  const templateIdOf = (t: Task) => t.virtual?.templateId ?? t.id;
+
   // Tasks already blocked on this day (events linked to tasks).
   const blockedTaskIds = new Set(
-    items.filter(isTaskBlock).map((i) => (i.source as CalendarEvent).taskId)
+    items
+      .filter(isTaskBlock)
+      .map((i) => ((i.source as CalendarEvent).taskId ?? "").split("#")[0])
   );
 
   // Planning queue: today's/undated active tasks not yet blocked.
-  const queue = [...state.tasks]
+  const queue = visibleTasks
+    .filter((task) => !isTerminal(task))
     .filter(
       (task) =>
-        !isTerminal(task) &&
-        !blockedTaskIds.has(task.id) &&
+        !blockedTaskIds.has(templateIdOf(task)) &&
         ((task.dueDate && isSameDay(new Date(task.dueDate), dayStart)) ||
           task.status === "inbox" ||
           task.status === "planned")

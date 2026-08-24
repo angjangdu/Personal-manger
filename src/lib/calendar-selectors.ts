@@ -1,6 +1,7 @@
 import type { AppState } from "@/services/app-store";
 import type { Activity, CalendarEvent, Task } from "@/types";
 import { isSameDay } from "@/lib/date-utils";
+import { expandEvents, expandTasks } from "@/lib/recurrence";
 
 export type CalendarItemKind = "event" | "task" | "activity";
 
@@ -50,7 +51,20 @@ export function selectCalendarItems(
   const endMs = rangeEnd.getTime();
   const items: CalendarItem[] = [];
 
-  for (const event of state.calendarEvents) {
+  // Recurring templates expand into concrete occurrences for this range.
+  const events = expandEvents(
+    state.calendarEvents,
+    nowMs,
+    startMs,
+    endMs
+  ) as CalendarEvent[];
+  const tasks = expandTasks({ tasks: state.tasks }, {
+    overrides: state.occurrenceOverrides,
+    nowMs,
+    fromMs: startMs,
+  }) as Task[];
+
+  for (const event of events) {
     const s = new Date(event.startAt).getTime();
     const e = event.allDay ? s : new Date(event.endAt).getTime();
     if (s > endMs || e < startMs) continue;
@@ -66,7 +80,7 @@ export function selectCalendarItems(
     });
   }
 
-  for (const task of state.tasks) {
+  for (const task of tasks) {
     if (!task.dueDate) continue;
     const dueMs = new Date(task.dueDate).getTime();
     if (dueMs < startMs || dueMs > endMs) continue;

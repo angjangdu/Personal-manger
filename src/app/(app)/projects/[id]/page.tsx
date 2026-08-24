@@ -25,6 +25,7 @@ import { ProjectFormDialog } from "@/components/projects/project-form-dialog";
 import { useAppState } from "@/hooks/use-app-state";
 import { useNow } from "@/hooks/use-now";
 import { sortTasksBy } from "@/lib/selectors";
+import { selectVisibleTasks } from "@/lib/selectors";
 import { formatMinutes } from "@/lib/date-utils";
 import type { Task } from "@/types";
 
@@ -42,8 +43,11 @@ export default function ProjectDetailPage() {
 
   const tasks = useMemo(
     () =>
-      sortTasksBy(state.tasks.filter((t) => t.projectId === params.id), "due"),
-    [state.tasks, params.id]
+      sortTasksBy(
+        selectVisibleTasks(state, now).filter((t) => t.projectId === params.id),
+        "due"
+      ),
+    [state, now, params.id]
   );
 
   const activities = useMemo(

@@ -21,9 +21,21 @@ export function tasksCompletedPerDay(
   const today = startOfDay(new Date(nowMs));
   for (let i = days - 1; i >= 0; i--) {
     const day = addDays(today, -i);
-    const value = state.tasks.filter(
+    let value = state.tasks.filter(
       (t) => t.completedAt && isSameDay(new Date(t.completedAt), day)
     ).length;
+    // Recurring occurrence completions live in the overrides map.
+    for (const templateOverrides of Object.values(state.occurrenceOverrides)) {
+      for (const override of Object.values(templateOverrides)) {
+        if (
+          override.done &&
+          override.completedAt &&
+          isSameDay(new Date(override.completedAt), day)
+        ) {
+          value++;
+        }
+      }
+    }
     out.push({ label: String(day.getDate()), value });
   }
   return out;

@@ -7,6 +7,35 @@ export type TaskStatus = "inbox" | "planned" | "in_progress" | "completed" | "ca
 
 export type Priority = "low" | "medium" | "high" | "urgent";
 
+/**
+ * Recurrence rule. Occurrences are generated virtually from the anchor date;
+ * each occurrence is completed/skipped independently via occurrence overrides.
+ */
+export interface RecurrenceRule {
+  freq:
+    | "daily"
+    | "weekdays"
+    | "weekly"
+    | "biweekly"
+    | "monthly"
+    | "yearly"
+    | "custom";
+  /** JS day indices (0=Sun…6=Sat) for weekly/custom rules. */
+  weekdays?: number[];
+}
+
+/** Marker attached to virtually-generated occurrences (never persisted). */
+export interface VirtualOccurrence {
+  templateId: string;
+  dateKey: string;
+}
+
+export interface OccurrenceOverride {
+  done?: boolean;
+  skipped?: boolean;
+  completedAt?: string;
+}
+
 export interface Subtask {
   id: string;
   taskId: string;
@@ -25,14 +54,18 @@ export interface Task {
   dueDate?: string;
   dueTime?: string;
   estimatedDurationMinutes?: number;
-  actualDurationMinutes?: number;
   projectId?: string;
   goalId?: string;
   tagIds: string[];
   subtasks: Subtask[];
+  repeat?: RecurrenceRule;
   completedAt?: string;
   createdAt: string;
   updatedAt: string;
+  /** Present only on generated occurrences at runtime. */
+  virtual?: VirtualOccurrence;
+  /** True when this occurrence was explicitly skipped. */
+  skipped?: boolean;
 }
 
 export interface Project {
@@ -102,6 +135,14 @@ export interface HabitLog {
   createdAt: string;
 }
 
+export type EventCategory =
+  | "general"
+  | "class"
+  | "work"
+  | "study"
+  | "project"
+  | "personal";
+
 export interface CalendarEvent {
   id: string;
   title: string;
@@ -111,6 +152,28 @@ export interface CalendarEvent {
   allDay: boolean;
   taskId?: string;
   activityId?: string;
+  repeat?: RecurrenceRule;
+  category?: EventCategory;
+  createdAt: string;
+}
+
+/** Why a scheduled item was moved — feeds rescheduling reports. */
+export interface RescheduleLog {
+  id: string;
+  itemId: string;
+  itemType: "event";
+  title: string;
+  fromStart: string;
+  toStart: string;
+  reason:
+    | "not_enough_time"
+    | "higher_priority"
+    | "unexpected_event"
+    | "too_tired"
+    | "took_longer"
+    | "personal"
+    | "other";
+  note?: string;
   createdAt: string;
 }
 

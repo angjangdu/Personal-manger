@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
@@ -18,10 +18,12 @@ import { TaskFormDialog } from "@/components/tasks/task-form-dialog";
 import { TaskRow } from "@/components/tasks/task-row";
 import { TaskToolbar, type ToolbarState } from "@/components/tasks/task-toolbar";
 import { useAppState } from "@/hooks/use-app-state";
+import { useNow } from "@/hooks/use-now";
 import {
   filterTasks,
   selectTaskCounts,
   selectTasksForView,
+  selectVisibleTasks,
   sortTasksBy,
   type TaskViewKey,
 } from "@/lib/selectors";
@@ -38,6 +40,7 @@ const VIEWS: { key: TaskViewKey; label: string; empty: string }[] = [
 
 export default function TasksPage() {
   const state = useAppState();
+  const nowMs = useNow(60000);
   const [view, setView] = useState<TaskViewKey>("all");
   const [toolbar, setToolbar] = useState<ToolbarState>({
     query: "",
@@ -48,21 +51,24 @@ export default function TasksPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Task | undefined>(undefined);
 
+  // Recurring templates expanded into independent occurrences.
+  const allTasks = selectVisibleTasks(state, nowMs);
+
   const viewCounts = useMemo(() => {
     const counts = {} as Record<TaskViewKey, number>;
     for (const v of VIEWS) {
-      counts[v.key] = selectTasksForView(state.tasks, v.key).length;
+      counts[v.key] = selectTasksForView(allTasks, v.key).length;
     }
     return counts;
-  }, [state.tasks]);
+  }, [allTasks]);
 
   const visibleTasks = useMemo(() => {
-    const inView = selectTasksForView(state.tasks, view);
+    const inView = selectTasksForView(allTasks, view);
     const filtered = filterTasks(inView, toolbar, state);
     return sortTasksBy(filtered, toolbar.sort);
-  }, [state, view, toolbar]);
+  }, [allTasks, state, view, toolbar]);
 
-  const overall = selectTaskCounts(state.tasks);
+  const overall = selectTaskCounts(allTasks);
 
   function openCreate() {
     setEditing(undefined);
@@ -108,7 +114,7 @@ export default function TasksPage() {
       </div>
 
       <p className="text-muted-foreground mb-2 text-xs tabular-nums" role="status">
-        Showing {visibleTasks.length} of {state.tasks.length} tasks
+        Showing {visibleTasks.length} of {allTasks.length} tasks
       </p>
 
       {visibleTasks.length === 0 ? (

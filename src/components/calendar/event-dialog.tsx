@@ -25,7 +25,56 @@ import { Switch } from "@/components/ui/switch";
 import { appStore, type EventInput } from "@/services/app-store";
 import { useAppState } from "@/hooks/use-app-state";
 import { toTimeString } from "@/lib/date-utils";
-import type { CalendarEvent } from "@/types";
+import type {
+  CalendarEvent,
+  EventCategory,
+  RecurrenceRule,
+} from "@/types";
+import { cn } from "@/lib/utils";
+
+type RepeatChoice =
+  | "none"
+  | "daily"
+  | "weekdays"
+  | "weekly"
+  | "biweekly"
+  | "monthly"
+  | "yearly"
+  | "custom";
+
+const REPEAT_OPTIONS: { value: RepeatChoice; label: string }[] = [
+  { value: "none", label: "Does not repeat" },
+  { value: "daily", label: "Every day" },
+  { value: "weekdays", label: "Every weekday (Mon–Fri)" },
+  { value: "weekly", label: "Every week" },
+  { value: "biweekly", label: "Every 2 weeks" },
+  { value: "monthly", label: "Every month" },
+  { value: "yearly", label: "Every year" },
+  { value: "custom", label: "Custom days…" },
+];
+
+const WEEKDAY_CHIPS = [
+  { value: 1, label: "M" },
+  { value: 2, label: "T" },
+  { value: 3, label: "W" },
+  { value: 4, label: "T" },
+  { value: 5, label: "F" },
+  { value: 6, label: "S" },
+  { value: 0, label: "S" },
+];
+
+function ruleToChoice(rule?: RecurrenceRule): RepeatChoice {
+  return (rule?.freq as RepeatChoice) ?? "none";
+}
+
+const CATEGORY_OPTIONS: { value: EventCategory; label: string }[] = [
+  { value: "general", label: "General" },
+  { value: "class", label: "Class / College" },
+  { value: "work", label: "Work" },
+  { value: "study", label: "Study" },
+  { value: "project", label: "Project" },
+  { value: "personal", label: "Personal" },
+];
 
 export interface EventDialogPrefill {
   date?: Date;
@@ -84,10 +133,28 @@ function EventFormFields({
       : prefill?.endTime ?? "10:00"
   );
   const [taskId, setTaskId] = useState(event?.taskId ?? "");
+  const [repeatChoice, setRepeatChoice] = useState<RepeatChoice>(
+    ruleToChoice(event?.repeat)
+  );
+  const [repeatWeekdays, setRepeatWeekdays] = useState<number[]>(
+    event?.repeat?.weekdays ?? []
+  );
+  const [category, setCategory] = useState<EventCategory>(
+    event?.category ?? "general"
+  );
 
   function buildInput(): EventInput | null {
     const trimmed = title.trim();
     if (!trimmed) return null;
+
+    const repeat: RecurrenceRule | undefined =
+      repeatChoice === "none"
+        ? undefined
+        : repeatChoice === "custom"
+          ? repeatWeekdays.length > 0
+            ? { freq: "custom", weekdays: repeatWeekdays }
+            : undefined
+          : { freq: repeatChoice };
 
     const day = new Date(date + "T00:00:00");
     if (allDay) {
@@ -97,6 +164,8 @@ function EventFormFields({
         startAt: day.toISOString(),
         endAt: day.toISOString(),
         taskId: taskId === "none" ? "" : taskId,
+        repeat,
+        category,
       };
     }
     const startMinutes = Number(startTime.slice(0, 2)) * 60 + Number(startTime.slice(3, 5));
@@ -112,6 +181,8 @@ function EventFormFields({
       startAt: start.toISOString(),
       endAt: end.toISOString(),
       taskId: taskId === "none" ? "" : taskId,
+      repeat,
+      category,
     };
   }
 
@@ -226,6 +297,78 @@ function EventFormFields({
             </SelectContent>
           </Select>
         </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label>Category</Label>
+            <Select value={category} onValueChange={(v) => setCategory(v as EventCategory)}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Repeat</Label>
+            <Select
+              value={repeatChoice}
+              onValueChange={(v) => setRepeatChoice(v as RepeatChoice)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {REPEAT_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {(repeatChoice === "custom" || repeatChoice === "weekly") && (
+          <div className="flex gap-1.5">
+            {WEEKDAY_CHIPS.map((day, idx) => {
+              const active = repeatWeekdays.includes(day.value);
+              return (
+                <button
+                  key={`${day.label}-${idx}`}
+                  type="button"
+                  aria-pressed={active}
+                  aria-label={["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][day.value]}
+                  onClick={() =>
+                    setRepeatWeekdays((prev) =>
+                      prev.includes(day.value)
+                        ? prev.filter((d) => d !== day.value)
+                        : [...prev, day.value]
+                    )
+                  }
+                  className={cn(
+                    "size-8 rounded-full border text-xs font-medium transition-colors",
+                    active
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  )}
+                >
+                  {day.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {repeatChoice !== "none" && (
+          <p className="text-muted-foreground text-[11px]">
+            Occurrences repeat automatically on the calendar.
+          </p>
+        )}
 
         {event && !allDay ? (
           <div className="flex flex-wrap items-center gap-2 border-t pt-3">

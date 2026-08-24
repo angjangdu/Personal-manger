@@ -1,6 +1,15 @@
 import type { AppState } from "@/services/app-store";
 import type { Task, TaskStatus } from "@/types";
 import { endOfDay, isSameDay, startOfDay } from "@/lib/date-utils";
+import { expandTasks } from "@/lib/recurrence";
+
+/** All visible task instances — recurring templates expanded into occurrences. */
+export function selectVisibleTasks(state: AppState, nowMs: number): Task[] {
+  return expandTasks({ tasks: state.tasks }, {
+    overrides: state.occurrenceOverrides,
+    nowMs,
+  });
+}
 
 const PRIORITY_WEIGHT = { urgent: 4, high: 3, medium: 2, low: 1 } as const;
 
@@ -118,9 +127,9 @@ export function filterTasks(
   });
 }
 
-export function selectTodaysTasks(state: AppState): Task[] {
-  const today = startOfDay();
-  return state.tasks.filter(
+export function selectTodaysTasks(state: AppState, nowMs: number): Task[] {
+  const today = startOfDay(new Date(nowMs));
+  return selectVisibleTasks(state, nowMs).filter(
     (task) => task.dueDate && isSameDay(new Date(task.dueDate), today)
   );
 }
@@ -151,10 +160,17 @@ export function selectProjectTaskCounts(state: AppState) {
   const counts: Record<string, { total: number; completed: number }> = {};
   for (const project of state.projects) {
     const tasks = state.tasks.filter((task) => task.projectId === project.id);
-    counts[project.id] = {
-      total: tasks.length,
-      completed: tasks.filter((task) => task.status === "completed").length,
-    };
+    let completed = tasks.filter((task) => task.status === "completed").length;
+    // Recurring completions live in occurrence overrides.
+    for (const task of tasks) {
+      if (!task.repeat) continue;
+      for (const override of Object.values(
+        state.occurrenceOverrides[task.id] ?? {}
+      )) {
+        if (override.done) completed++;
+      }
+    }
+    counts[project.id] = { total: tasks.length, completed };
   }
   return counts;
 }

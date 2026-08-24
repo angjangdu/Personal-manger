@@ -7,7 +7,9 @@
   HabitLog,
   Milestone,
   Note,
+  OccurrenceOverride,
   Project,
+  RescheduleLog,
   StudySession,
   StudySubject,
   StudyTopic,
@@ -15,6 +17,7 @@
   Tag,
   Task,
 } from "@/types";
+import { parseVirtualId } from "@/lib/recurrence";
 import {
   mockActivities,
   mockCalendarEvents,
@@ -55,6 +58,9 @@ export interface AppState {
   studySessions: StudySession[];
   notes: Note[];
   dailyReviews: DailyReview[];
+  /** Per-occurrence completions/skips for recurring tasks: templateId → dateKey → override. */
+  occurrenceOverrides: Record<string, Record<string, OccurrenceOverride>>;
+  rescheduleLogs: RescheduleLog[];
 }
 
 export interface TaskInput {
@@ -68,6 +74,7 @@ export interface TaskInput {
   projectId?: string;
   goalId?: string;
   tagIds: string[];
+  repeat?: Task["repeat"];
 }
 
 export interface ProjectInput {
@@ -91,6 +98,8 @@ export interface EventInput {
   endAt: string;
   allDay: boolean;
   taskId?: string;
+  repeat?: CalendarEvent["repeat"];
+  category?: CalendarEvent["category"];
 }
 
 export interface HabitInput {
@@ -146,6 +155,8 @@ function seedState(): AppState {
     studySessions: mockStudySessions,
     notes: mockNotes,
     dailyReviews: [],
+    occurrenceOverrides: {},
+    rescheduleLogs: [],
   };
 }
 
@@ -217,11 +228,25 @@ class AppStore {
       goalId: input.goalId || undefined,
       tagIds: input.tagIds,
       subtasks: [],
+      repeat: input.repeat,
       createdAt: nowIso,
       updatedAt: nowIso,
     };
     this.set((s) => ({ ...s, tasks: [task, ...s.tasks] }));
     return task;
+  }
+
+  /** Deletes a task series (template + all its occurrence overrides). */
+  deleteTask(id: string) {
+    this.set((s) => {
+      const overrides = { ...s.occurrenceOverrides };
+      delete overrides[id];
+      return {
+        ...s,
+        tasks: s.tasks.filter((task) => task.id !== id),
+        occurrenceOverrides: overrides,
+      };
+    });
   }
 
   updateTask(id: string, patch: Partial<TaskInput>) {
@@ -240,6 +265,7 @@ class AppStore {
               projectId: patch.projectId || undefined,
               goalId: patch.goalId || undefined,
               tagIds: patch.tagIds ?? task.tagIds,
+              repeat: patch.repeat !== undefined ? patch.repeat : task.repeat,
               updatedAt: new Date().toISOString(),
             }
           : task
@@ -247,11 +273,60 @@ class AppStore {
     }));
   }
 
-  deleteTask(id: string) {
-    this.set((s) => ({ ...s, tasks: s.tasks.filter((task) => task.id !== id) }));
+  /** Writes/removes an occurrence override for a recurring task. */
+  private writeOverride(
+    templateId: string,
+    dateKey: string,
+    mutate: (prev: OccurrenceOverride | undefined) => OccurrenceOverride | null
+  ) {
+    this.set((s) => {
+      const templateOverrides = { ...(s.occurrenceOverrides[templateId] ?? {}) };
+      const next = mutate(templateOverrides[dateKey]);
+      if (next === null) delete templateOverrides[dateKey];
+      else templateOverrides[dateKey] = next;
+      return {
+        ...s,
+        occurrenceOverrides: {
+          ...s.occurrenceOverrides,
+          [templateId]: templateOverrides,
+        },
+      };
+    });
+  }
+
+  toggleTaskComplete(id: string) {
+    const virtual = parseVirtualId(id);
+    if (virtual) {
+      this.writeOverride(virtual.templateId, virtual.dateKey, (prev) =>
+        prev?.done
+          ? { skipped: prev.skipped }
+          : { done: true, completedAt: new Date().toISOString() }
+      );
+      return;
+    }
+    const task = this.state.tasks.find((t) => t.id === id);
+    if (!task) return;
+    this.setTaskStatus(id, task.status === "completed" ? "planned" : "completed");
   }
 
   setTaskStatus(id: string, status: Task["status"]) {
+    const virtual = parseVirtualId(id);
+    if (virtual) {
+      // Per-occurrence statuses map to done/skip; other states reset the override.
+      if (status === "completed") {
+        this.writeOverride(virtual.templateId, virtual.dateKey, () => ({
+          done: true,
+          completedAt: new Date().toISOString(),
+        }));
+      } else if (status === "cancelled") {
+        this.writeOverride(virtual.templateId, virtual.dateKey, () => ({
+          skipped: true,
+        }));
+      } else {
+        this.writeOverride(virtual.templateId, virtual.dateKey, () => null);
+      }
+      return;
+    }
     this.set((s) => ({
       ...s,
       tasks: s.tasks.map((task) =>
@@ -266,12 +341,6 @@ class AppStore {
           : task
       ),
     }));
-  }
-
-  toggleTaskComplete(id: string) {
-    const task = this.state.tasks.find((t) => t.id === id);
-    if (!task) return;
-    this.setTaskStatus(id, task.status === "completed" ? "planned" : "completed");
   }
 
   addSubtask(taskId: string, title: string) {
@@ -515,6 +584,8 @@ class AppStore {
       endAt: input.endAt,
       allDay: input.allDay,
       taskId: input.taskId || undefined,
+      repeat: input.repeat,
+      category: input.category ?? "general",
       createdAt: new Date().toISOString(),
     };
     this.set((s) => ({ ...s, calendarEvents: [event, ...s.calendarEvents] }));
@@ -534,6 +605,7 @@ class AppStore {
                 patch.taskId !== undefined
                   ? patch.taskId || undefined
                   : event.taskId,
+              category: patch.category ?? event.category ?? "general",
             }
           : event
       ),
@@ -545,6 +617,16 @@ class AppStore {
       ...s,
       calendarEvents: s.calendarEvents.filter((event) => event.id !== id),
     }));
+  }
+
+  /** Records why a scheduled item was moved (feeds reschedule reports). */
+  addRescheduleLog(log: Omit<RescheduleLog, "id" | "createdAt">) {
+    const entry: RescheduleLog = {
+      ...log,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    this.set((s) => ({ ...s, rescheduleLogs: [entry, ...s.rescheduleLogs] }));
   }
 
   // â”€â”€ Activities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

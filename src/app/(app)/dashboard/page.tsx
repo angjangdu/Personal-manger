@@ -25,7 +25,7 @@ export default function DashboardPage() {
   const now = new Date(nowMs);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
 
-  const todaysTasks = selectTodaysTasks(state);
+  const todaysTasks = selectTodaysTasks(state, nowMs);
   const tasksDone = todaysTasks.filter((t) => t.status === "completed").length;
   const currentActivity =
     [...state.activities]
