@@ -8,6 +8,7 @@ import { HabitsWidget } from "@/components/dashboard/habits-widget";
 import { ProjectsWidget } from "@/components/dashboard/projects-widget";
 import { TodaysScheduleCard } from "@/components/dashboard/todays-schedule-card";
 import { TodaysTasksCard } from "@/components/dashboard/todays-tasks-card";
+import { TaskFormDialog } from "@/components/tasks/task-form-dialog";
 import { useAppState } from "@/hooks/use-app-state";
 import { useNow } from "@/hooks/use-now";
 import {
@@ -16,11 +17,13 @@ import {
   selectTodaysTasks,
 } from "@/lib/selectors";
 import { isHabitDueOn } from "@/lib/habit-utils";
+import { useState } from "react";
 
 export default function DashboardPage() {
   const state = useAppState();
   const nowMs = useNow(60000);
   const now = new Date(nowMs);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
 
   const todaysTasks = selectTodaysTasks(state);
   const tasksDone = todaysTasks.filter((t) => t.status === "completed").length;
@@ -41,6 +44,7 @@ export default function DashboardPage() {
             tasksDone={tasksDone}
             tasksTotal={todaysTasks.length}
             focusMinutes={selectFocusMinutesToday(state)}
+            onAddTask={() => setTaskDialogOpen(true)}
           />
           <CurrentActivityCard activity={currentActivity} />
         </section>
@@ -66,6 +70,8 @@ export default function DashboardPage() {
           </div>
         </section>
       </div>
+
+      <TaskFormDialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen} />
     </>
   );
 }

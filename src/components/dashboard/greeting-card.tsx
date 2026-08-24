@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { CalendarPlus, ListPlus, Play } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,6 +18,7 @@ interface GreetingCardProps {
   tasksDone: number;
   tasksTotal: number;
   focusMinutes: number;
+  onAddTask?: () => void;
   className?: string;
 }
 
@@ -26,19 +26,14 @@ export function GreetingCard({
   tasksDone,
   tasksTotal,
   focusMinutes,
+  onAddTask,
   className,
 }: GreetingCardProps) {
+  const router = useRouter();
   // Slow tick — greeting/date only change at minute granularity.
   const now = new Date(useNow(60000));
-  const router = useRouter();
   const percent =
     tasksTotal > 0 ? Math.round((tasksDone / tasksTotal) * 100) : 0;
-
-  const stub = (feature: string, phase: number) => () =>
-    toast(`${feature} lands in Phase ${phase}`, {
-      description: "The shell and design system are ready for it.",
-    });
-  void stub;
 
   return (
     <Card className={className}>
@@ -60,7 +55,7 @@ export function GreetingCard({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" onClick={stub("Task creation", 4)}>
+          <Button size="sm" onClick={() => (onAddTask ? onAddTask() : router.push("/tasks"))}>
             <ListPlus aria-hidden /> Add Task
           </Button>
           <Button size="sm" variant="secondary" onClick={() => router.push("/activities")}>

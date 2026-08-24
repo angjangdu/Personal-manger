@@ -9,7 +9,10 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { mobileNav, secondaryNav } from "@/components/layout/nav-config";
+import { mobileNav, primaryNav, secondaryNav } from "@/components/layout/nav-config";
+
+/** Everything not pinned to the bottom bar. */
+const moreItems = [...primaryNav.slice(mobileNav.length), ...secondaryNav];
 
 export function MobileNav() {
   const pathname = usePathname();
@@ -55,7 +58,7 @@ export function MobileNav() {
               <SheetDescription>Remaining sections</SheetDescription>
             </SheetHeader>
             <div className="grid grid-cols-3 gap-2 px-4 pb-6">
-              {secondaryNav.map((item) => (
+              {moreItems.map((item) => (
                 <SidebarMenuItem key={item.href} className="list-none">
                   <SidebarMenuButton
                     asChild
