@@ -17,6 +17,7 @@ import {
 import type { Task, TaskStatus } from "@/types";
 import { appStore } from "@/services/app-store";
 import { useAppState } from "@/hooks/use-app-state";
+import { useNow } from "@/hooks/use-now";
 import { formatMinutes } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 
@@ -42,11 +43,25 @@ interface TaskRowProps {
 
 export function TaskRow({ task, onEdit }: TaskRowProps) {
   const state = useAppState();
+  const nowMs = useNow(60000);
   const project = state.projects.find((p) => p.id === task.projectId);
   const done = task.status === "completed";
   const cancelled = task.status === "cancelled";
   const subDone = task.subtasks.filter((s) => s.completed).length;
   const templateId = task.virtual?.templateId ?? task.id;
+
+  // Planned vs actual (review §10): tracked time on this task/series.
+  const actualMinutes = state.activities
+    .filter((a) => a.taskId && a.taskId.split("#")[0] === templateId)
+    .reduce(
+      (sum, a) =>
+        sum +
+        Math.round(
+          a.durationMinutes ??
+            (nowMs - new Date(a.startedAt).getTime() - a.totalPausedMs) / 60000
+        ),
+      0
+    );
 
   function remove() {
     // Occurrence menu offers Skip instead; delete here removes the series.
@@ -115,6 +130,19 @@ export function TaskRow({ task, onEdit }: TaskRowProps) {
             <span className="inline-flex items-center gap-1">
               <Timer className="size-3" aria-hidden />
               {formatMinutes(task.estimatedDurationMinutes)}
+              {actualMinutes > 0 && (
+                <span
+                  className={cn(
+                    "ml-1 tabular-nums",
+                    actualMinutes > task.estimatedDurationMinutes
+                      ? "text-orange-600 dark:text-orange-400"
+                      : "text-emerald-600 dark:text-emerald-400"
+                  )}
+                  title={`Planned ${formatMinutes(task.estimatedDurationMinutes)} · Actual ${formatMinutes(actualMinutes)}`}
+                >
+                  / {formatMinutes(actualMinutes)}
+                </span>
+              )}
             </span>
           ) : null}
           {task.subtasks.length > 0 && (

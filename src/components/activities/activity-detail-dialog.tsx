@@ -14,9 +14,20 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { appStore } from "@/services/app-store";
 import { useNow } from "@/hooks/use-now";
-import type { Activity } from "@/types";
+import {
+  ACTIVITY_CATEGORIES,
+  categoryLabel,
+} from "@/components/activities/categories";
+import type { Activity, ActivityCategory } from "@/types";
 
 interface ActivityDetailDialogProps {
   activity: Activity | null;
@@ -28,6 +39,9 @@ export function ActivityDetailDialog({
   onOpenChange,
 }: ActivityDetailDialogProps) {
   const [notes, setNotes] = useState(activity?.notes ?? "");
+  const [category, setCategory] = useState<ActivityCategory>(
+    activity?.category ?? "other"
+  );
   const now = useNow(1000);
 
   if (!activity) return null;
@@ -87,6 +101,25 @@ export function ActivityDetailDialog({
         </dl>
 
         <div className="space-y-2">
+          <Label>Category</Label>
+          <Select
+            value={category}
+            onValueChange={(v) => setCategory(v as ActivityCategory)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue>{categoryLabel(category) || "Other"}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {ACTIVITY_CATEGORIES.map((c) => (
+                <SelectItem key={c.value} value={c.value}>
+                  {c.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="activity-notes">Notes</Label>
           <Textarea
             id="activity-notes"
@@ -117,12 +150,12 @@ export function ActivityDetailDialog({
             <Button
               type="button"
               onClick={() => {
-                appStore.updateActivityNotes(activity.id, notes);
-                toast("Notes saved");
+                appStore.updateActivity(activity.id, { notes, category, title: activity.title });
+                toast("Saved");
                 onOpenChange(false);
               }}
             >
-              Save notes
+              Save
             </Button>
           </span>
         </DialogFooter>

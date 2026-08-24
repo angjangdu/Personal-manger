@@ -17,6 +17,10 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { ActivityDetailDialog } from "@/components/activities/activity-detail-dialog";
 import { StartActivityDialog } from "@/components/activities/start-activity-dialog";
+import { ManualActivityDialog } from "@/components/activities/manual-activity-dialog";
+import {
+  categoryLabel,
+} from "@/components/activities/categories";
 import { appStore } from "@/services/app-store";
 import { useAppState } from "@/hooks/use-app-state";
 import { useNow } from "@/hooks/use-now";
@@ -37,7 +41,9 @@ export default function ActivitiesPage() {
   const nowMs = useNow(1000);
 
   const [startDialogOpen, setStartDialogOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
   const [range, setRange] = useState<HistoryRange>("today");
+  const [layout, setLayout] = useState<"list" | "timeline">("list");
   const [detail, setDetail] = useState<Activity | null>(null);
 
   const current = useMemo(
@@ -85,6 +91,9 @@ export default function ActivitiesPage() {
   return (
     <>
       <PageHeader title="Activities" description="Track focused work — durations come from timestamps, not timers.">
+        <Button variant="outline" onClick={() => setManualOpen(true)}>
+          Add past session
+        </Button>
         {!current && (
           <Button onClick={() => setStartDialogOpen(true)}>
             <Plus aria-hidden /> Start activity
@@ -100,19 +109,49 @@ export default function ActivitiesPage() {
         onStart={() => setStartDialogOpen(true)}
       />
 
-      {/* Day focus summary */}
-      <div className="my-4 grid gap-3 sm:grid-cols-3">
+      {/* Day focus summary + planned vs actual */}
+      <div className="my-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {(() => {
           const dayStartTs = startOfDay().getTime();
           const todays = state.activities.filter((a) => new Date(a.startedAt).getTime() >= dayStartTs);
           const total = todays.reduce((s, a) => s + (a.durationMinutes ?? (nowMs - new Date(a.startedAt).getTime() - a.totalPausedMs) / 60000), 0);
           const sessions = todays.length;
           const avg = sessions > 0 ? Math.round(total / sessions) : 0;
+          // Planned vs actual for tasks tracked today (review §10).
+          let plannedSum = 0;
+          let actualSum = 0;
+          const seenTemplates = new Set<string>();
+          for (const a of todays) {
+            if (!a.taskId) continue;
+            const templateId = a.taskId.split("#")[0];
+            if (seenTemplates.has(templateId)) continue;
+            seenTemplates.add(templateId);
+            actualSum += Math.round(
+              (a.durationMinutes ??
+                (nowMs - new Date(a.startedAt).getTime() - a.totalPausedMs) / 60000)
+            );
+            const task = state.tasks.find((t) => t.id === templateId);
+            if (task?.estimatedDurationMinutes) plannedSum += task.estimatedDurationMinutes;
+          }
+          const diff = Math.round(actualSum - plannedSum);
           return (
             <>
               <StatTile label="Focus today" value={formatMinutes(Math.round(total))} />
               <StatTile label="Sessions" value={String(sessions)} />
               <StatTile label="Avg session" value={formatMinutes(avg)} />
+              <StatTile
+                label="Planned vs actual"
+                value={
+                  plannedSum > 0 || actualSum > 0
+                    ? `${formatMinutes(plannedSum)} / ${formatMinutes(actualSum)}`
+                    : "—"
+                }
+                hint={
+                  plannedSum > 0
+                    ? `${diff > 0 ? "+" : ""}${formatMinutes(Math.abs(diff))} ${diff > 0 ? "over" : diff < 0 ? "under" : "on target"}`
+                    : undefined
+                }
+              />
             </>
           );
         })()}
@@ -127,15 +166,23 @@ export default function ActivitiesPage() {
               {formatMinutes(rangeTotals)} tracked · {history.length} sessions
             </span>
           </h3>
-          <Tabs value={range} onValueChange={(v) => setRange(v as HistoryRange)}>
-            <TabsList className="h-auto flex-wrap">
-              <TabsTrigger value="today">Today</TabsTrigger>
-              <TabsTrigger value="yesterday">Yesterday</TabsTrigger>
-              <TabsTrigger value="week">Week</TabsTrigger>
-              <TabsTrigger value="month">Month</TabsTrigger>
-              <TabsTrigger value="all">All</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex flex-wrap items-center gap-2">
+            <Tabs value={layout} onValueChange={(v) => setLayout(v as "list" | "timeline")}>
+              <TabsList>
+                <TabsTrigger value="list">List</TabsTrigger>
+                <TabsTrigger value="timeline">Timeline</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <Tabs value={range} onValueChange={(v) => setRange(v as HistoryRange)}>
+              <TabsList className="h-auto flex-wrap">
+                <TabsTrigger value="today">Today</TabsTrigger>
+                <TabsTrigger value="yesterday">Yesterday</TabsTrigger>
+                <TabsTrigger value="week">Week</TabsTrigger>
+                <TabsTrigger value="month">Month</TabsTrigger>
+                <TabsTrigger value="all">All</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         </div>
 
         {history.length === 0 ? (
@@ -148,7 +195,7 @@ export default function ActivitiesPage() {
               <EmptyDescription>Stopped sessions collect here with computed durations.</EmptyDescription>
             </EmptyHeader>
           </Empty>
-        ) : (
+        ) : layout === "list" ? (
           <ul className="divide-y overflow-hidden rounded-xl border">
             {history.map((activity) => {
               const project = state.projects.find((p) => p.id === activity.projectId);
@@ -170,6 +217,7 @@ export default function ActivitiesPage() {
                         {new Date(activity.startedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
                         –{activity.endedAt ? new Date(activity.endedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : ""}
                         {project ? ` · ${project.name}` : ""}
+                        {activity.category ? ` · ${categoryLabel(activity.category)}` : ""}
                       </span>
                     </span>
                     <span className="shrink-0 text-sm font-semibold tabular-nums">
@@ -180,10 +228,13 @@ export default function ActivitiesPage() {
               );
             })}
           </ul>
+        ) : (
+          <TimelineHistory activities={history} onOpen={setDetail} />
         )}
       </section>
 
       <StartActivityDialog open={startDialogOpen} onOpenChange={setStartDialogOpen} />
+      <ManualActivityDialog open={manualOpen} onOpenChange={setManualOpen} />
 
       <ActivityDetailDialog
         activity={detail}
@@ -195,14 +246,85 @@ export default function ActivitiesPage() {
   );
 }
 
-function StatTile({ label, value }: { label: string; value: string }) {
+function StatTile({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <Card className="py-4">
       <CardContent className="px-4">
         <p className="text-muted-foreground text-xs">{label}</p>
         <p className="mt-1 text-xl font-bold tabular-nums">{value}</p>
+        {hint && <p className="text-muted-foreground mt-1 text-xs">{hint}</p>}
       </CardContent>
     </Card>
+  );
+}
+
+/** Day-grouped vertical timeline of sessions. */
+function TimelineHistory({
+  activities,
+  onOpen,
+}: {
+  activities: Activity[];
+  onOpen: (activity: Activity) => void;
+}) {
+  const groups = new Map<string, Activity[]>();
+  for (const activity of activities) {
+    const key = startOfDay(new Date(activity.startedAt)).toDateString();
+    groups.set(key, [...(groups.get(key) ?? []), activity]);
+  }
+
+  return (
+    <div className="space-y-4">
+      {[...groups.entries()].map(([key, dayActivities]) => (
+        <section key={key}>
+          <h4 className="text-muted-foreground mb-1.5 text-xs font-semibold uppercase tracking-wide">
+            {new Date(key).toLocaleDateString(undefined, {
+              weekday: "long",
+              month: "short",
+              day: "numeric",
+            })}
+            <span className="ml-2 font-normal tabular-nums">
+              {formatMinutes(
+                dayActivities.reduce((s, a) => s + (a.durationMinutes ?? 0), 0)
+              )}
+            </span>
+          </h4>
+          <ol className="relative space-y-0 border-l pl-4">
+            {dayActivities.map((activity) => (
+              <li key={activity.id} className="relative pb-3">
+                <span
+                  className="bg-background absolute -left-[5px] top-1.5 size-2.5 rounded-full border-2 border-violet-500"
+                  aria-hidden
+                />
+                <button
+                  type="button"
+                  onClick={() => onOpen(activity)}
+                  className="hover:bg-accent/40 -mx-2 w-[calc(100%+1rem)] rounded-lg px-2 py-1.5 text-left transition-colors"
+                >
+                  <span className="block truncate text-sm font-medium">
+                    {activity.title}
+                    {activity.category && (
+                      <span className="text-muted-foreground ml-2 text-[11px] font-normal">
+                        {categoryLabel(activity.category)}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-muted-foreground block text-xs tabular-nums">
+                    {new Date(activity.startedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                    –{activity.endedAt ? new Date(activity.endedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : ""}
+                    {" · "}
+                    {formatMinutes(activity.durationMinutes ?? 0)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ))}
+      <p className="text-muted-foreground text-xs">
+        Activities also appear as violet blocks on the Calendar, and focus trends
+        live in Analytics.
+      </p>
+    </div>
   );
 }
 

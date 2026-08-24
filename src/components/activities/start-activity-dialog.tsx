@@ -23,6 +23,10 @@ import {
 } from "@/components/ui/select";
 import { appStore } from "@/services/app-store";
 import { useAppState } from "@/hooks/use-app-state";
+import {
+  ACTIVITY_CATEGORIES,
+} from "@/components/activities/categories";
+import type { ActivityCategory } from "@/types";
 
 interface StartActivityDialogProps {
   open: boolean;
@@ -33,6 +37,7 @@ export function StartActivityDialog({ open, onOpenChange }: StartActivityDialogP
   const state = useAppState();
   const [taskId, setTaskId] = useState("");
   const [projectId, setProjectId] = useState("");
+  const [category, setCategory] = useState<ActivityCategory>("other");
   const [title, setTitle] = useState("");
 
   if (!open) return null;
@@ -61,6 +66,7 @@ export function StartActivityDialog({ open, onOpenChange }: StartActivityDialogP
       title: trimmed,
       taskId: taskId === "none" ? "" : taskId,
       projectId: projectId === "none" ? "" : projectId,
+      category,
     });
     if (!created) {
       toast("A session is already running", {
@@ -142,6 +148,25 @@ export function StartActivityDialog({ open, onOpenChange }: StartActivityDialogP
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Category</Label>
+            <Select
+              value={category}
+              onValueChange={(v) => setCategory(v as ActivityCategory)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ACTIVITY_CATEGORIES.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <DialogFooter>

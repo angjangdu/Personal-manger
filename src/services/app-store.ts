@@ -96,14 +96,26 @@ export interface GoalInput {
   deadline?: string;
 }
 
-export interface EventInput {
-  title: string;
+export interface EventInput {  title: string;
   startAt: string;
   endAt: string;
   allDay: boolean;
   taskId?: string;
   repeat?: CalendarEvent["repeat"];
   category?: CalendarEvent["category"];
+}
+
+export interface ManualActivityInput {
+  title: string;
+  taskId?: string;
+  projectId?: string;
+  category?: Activity["category"];
+  /** "YYYY-MM-DD" */
+  date: string;
+  /** "HH:MM" session start. */
+  startTime: string;
+  durationMinutes: number;
+  notes?: string;
 }
 
 export interface HabitInput {
@@ -183,7 +195,7 @@ function persist(state: AppState) {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch {
-    // Storage full/unavailable â€” demo keeps working in memory.
+    // (section)
   }
 }
 
@@ -216,7 +228,7 @@ class AppStore {
     this.emit();
   }
 
-  // â”€â”€ Tasks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // (section)
 
   addTask(input: TaskInput): Task {
     const nowIso = new Date().toISOString();
@@ -409,7 +421,7 @@ class AppStore {
     }));
   }
 
-  // â”€â”€ Projects â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // (section)
 
   addProject(input: ProjectInput): Project {
     const nowIso = new Date().toISOString();
@@ -465,7 +477,7 @@ class AppStore {
     }));
   }
 
-  // â”€â”€ Goals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // (section)
 
   addGoal(input: GoalInput): Goal {
     const nowIso = new Date().toISOString();
@@ -526,7 +538,7 @@ class AppStore {
     }));
   }
 
-  // â”€â”€ Milestones â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // (section)
 
   addMilestone(goalId: string, title: string) {
     const trimmed = title.trim();
@@ -581,7 +593,7 @@ class AppStore {
     }));
   }
 
-  // â”€â”€ Calendar events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // (section)
 
   addEvent(input: EventInput): CalendarEvent {
     const event: CalendarEvent = {
@@ -641,7 +653,7 @@ class AppStore {
   updateSettings(patch: Partial<UserSettings>) {
     this.set((s) => ({ ...s, settings: { ...s.settings, ...patch } }));
   }
-  // â”€â”€ Activities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // (section)
   // Durations are always computed from timestamps, never trusted from a
   // client timer (architecture doc Â§9).
 
@@ -649,6 +661,7 @@ class AppStore {
     title: string;
     taskId?: string;
     projectId?: string;
+    category?: Activity["category"];
   }): Activity | null {
     if (this.state.activities.some((a) => !a.endedAt)) return null;
     const nowIso = new Date().toISOString();
@@ -657,12 +670,53 @@ class AppStore {
       title: input.title.trim(),
       taskId: input.taskId || undefined,
       projectId: input.projectId || undefined,
+      category: input.category,
       startedAt: nowIso,
       totalPausedMs: 0,
       createdAt: nowIso,
     };
     this.set((s) => ({ ...s, activities: [activity, ...s.activities] }));
     return activity;
+  }
+
+  /** Adds a past session the user forgot to track (review §10). */
+  addManualActivity(input: ManualActivityInput): Activity | null {
+    if (this.state.activities.some((a) => !a.endedAt)) return null;
+    const [h, m] = input.startTime.split(":").map(Number);
+    const start = new Date(input.date + "T00:00:00");
+    start.setHours(h || 0, m || 0, 0, 0);
+    const duration = Math.max(1, Math.round(input.durationMinutes));
+    const activity: Activity = {
+      id: crypto.randomUUID(),
+      title: input.title.trim(),
+      taskId: input.taskId || undefined,
+      projectId: input.projectId || undefined,
+      category: input.category,
+      startedAt: start.toISOString(),
+      endedAt: new Date(start.getTime() + duration * 60000).toISOString(),
+      totalPausedMs: 0,
+      durationMinutes: duration,
+      notes: input.notes?.trim() || undefined,
+      createdAt: new Date().toISOString(),
+    };
+    this.set((s) => ({ ...s, activities: [activity, ...s.activities] }));
+    return activity;
+  }
+
+  updateActivity(id: string, patch: Partial<Pick<Activity, "category" | "notes" | "title">>) {
+    this.set((s) => ({
+      ...s,
+      activities: s.activities.map((activity) =>
+        activity.id === id
+          ? {
+              ...activity,
+              ...patch,
+              title: patch.title?.trim() || activity.title,
+              notes: patch.notes !== undefined ? patch.notes.trim() || undefined : activity.notes,
+            }
+          : activity
+      ),
+    }));
   }
 
   pauseActivity(id: string) {
@@ -699,7 +753,7 @@ class AppStore {
     const activity = this.state.activities.find((a) => a.id === id);
     if (!activity || activity.endedAt) return;
 
-    // Stopping while paused freezes the session at the pause point â€”
+    // (section)
     // the pause was intentional time away, not tracked work.
     const endMs = activity.pausedAt
       ? new Date(activity.pausedAt).getTime()
@@ -733,18 +787,8 @@ class AppStore {
     }));
   }
 
-  updateActivityNotes(id: string, notes: string) {
-    this.set((s) => ({
-      ...s,
-      activities: s.activities.map((activity) =>
-        activity.id === id
-          ? { ...activity, notes: notes.trim() || undefined }
-          : activity
-      ),
-    }));
-  }
 
-  // â”€â”€ Habits â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // (section)
 
   addHabit(input: HabitInput): Habit {
     const nowIso = new Date().toISOString();
@@ -821,7 +865,7 @@ class AppStore {
     }
   }
 
-  // â”€â”€ Study â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // (section)
 
   addSubject(input: SubjectInput): StudySubject {
     const nowIso = new Date().toISOString();
@@ -931,7 +975,7 @@ class AppStore {
     }));
   }
 
-  // â”€â”€ Notes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // (section)
 
   addNote(input: NoteInput): Note {
     const nowIso = new Date().toISOString();

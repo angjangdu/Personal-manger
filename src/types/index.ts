@@ -105,11 +105,22 @@ export interface Goal {
   updatedAt: string;
 }
 
+export type ActivityCategory =
+  | "study"
+  | "coding"
+  | "college"
+  | "project"
+  | "work"
+  | "exercise"
+  | "personal"
+  | "other";
+
 export interface Activity {
   id: string;
   title: string;
   taskId?: string;
   projectId?: string;
+  category?: ActivityCategory;
   startedAt: string;
   endedAt?: string;
   pausedAt?: string;
