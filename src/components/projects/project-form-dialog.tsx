@@ -23,7 +23,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { appStore, type ProjectInput } from "@/services/app-store";
 import { useAppState } from "@/hooks/use-app-state";
-import type { Project } from "@/types";
+import { PROJECT_STATUS_LABELS } from "@/lib/health-utils";
+import type { Project, ProjectStatus } from "@/types";
 import { cn } from "@/lib/utils";
 
 const COLOR_SWATCHES = [
@@ -65,6 +66,9 @@ function ProjectFormFields({ project, onClose }: { project?: Project; onClose: (
     project?.deadline ? project.deadline.slice(0, 10) : ""
   );
   const [goalId, setGoalId] = useState(project?.goalId ?? "");
+  const [status, setStatus] = useState<ProjectStatus>(
+    project?.status ?? "active"
+  );
 
   function submit() {
     const trimmed = name.trim();
@@ -76,6 +80,7 @@ function ProjectFormFields({ project, onClose }: { project?: Project; onClose: (
       color,
       deadline: deadline ? new Date(deadline + "T00:00:00").toISOString() : "",
       goalId: goalId === "none" ? "" : goalId,
+      status,
     };
 
     if (project) {
@@ -149,7 +154,7 @@ function ProjectFormFields({ project, onClose }: { project?: Project; onClose: (
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-3 sm:grid-cols-3">
           <div className="space-y-2">
             <Label htmlFor="project-deadline">Deadline</Label>
             <Input
@@ -158,6 +163,21 @@ function ProjectFormFields({ project, onClose }: { project?: Project; onClose: (
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
             />
+          </div>
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <Select value={status} onValueChange={(v) => setStatus(v as ProjectStatus)}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(PROJECT_STATUS_LABELS) as ProjectStatus[]).map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {PROJECT_STATUS_LABELS[s]}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label>Goal</Label>

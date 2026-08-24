@@ -18,8 +18,10 @@ import {
   completedDayKeys,
   computeStreak,
   consistency,
+  graceDayKeys,
   isCompletedOn,
   isHabitDueOn,
+  toDayKey,
 } from "@/lib/habit-utils";
 import { addDays, isSameDay, startOfDay } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
@@ -38,12 +40,20 @@ export function HabitDetailDialog({ habit, onOpenChange }: HabitDetailDialogProp
     () => (habit ? completedDayKeys(state.habitLogs, habit.id) : new Set<string>()),
     [state.habitLogs, habit]
   );
+  const graceKeys = useMemo(
+    () => (habit ? graceDayKeys(state.habitGraceLogs, habit.id) : new Set<string>()),
+    [state.habitGraceLogs, habit]
+  );
 
   if (!habit) return null;
 
-  const streak = computeStreak(habit, keys, now);
+  const streak = computeStreak(habit, keys, now, graceKeys);
   const best = bestStreak(habit, keys, now);
   const rate = consistency(habit, keys, now);
+
+  // Grace used in the last 30 days.
+  const cutoff = toDayKey(addDays(startOfDay(now), -30));
+  const gracedRecently = [...graceKeys].filter((k) => k >= cutoff).length;
 
   // Last 35 days as a compact grid (5 weeks).
   const days = Array.from({ length: 35 }, (_, i) => addDays(startOfDay(now), -(34 - i)));
@@ -84,6 +94,7 @@ export function HabitDetailDialog({ habit, onOpenChange }: HabitDetailDialogProp
             {days.map((day) => {
               const due = isHabitDueOn(habit, day);
               const done = isCompletedOn(keys, day);
+              const excused = graceKeys.has(toDayKey(day));
               const today = isSameDay(day, now) || undefined;
               return (
                 <button
@@ -91,12 +102,13 @@ export function HabitDetailDialog({ habit, onOpenChange }: HabitDetailDialogProp
                   type="button"
                   disabled={!due}
                   onClick={() => appStore.toggleHabitLog(habit.id, day)}
-                  aria-label={`${day.toDateString()}${done ? " — completed" : due ? " — missed" : " — not scheduled"}`}
+                  aria-label={`${day.toDateString()}${done ? " — completed" : excused ? " — excused" : due ? " — missed" : " — not scheduled"}`}
                   className={cn(
                     "aspect-square rounded border text-center transition-colors",
                     !due && "border-transparent bg-muted/30",
-                    due && !done && "bg-red-500/10 border-red-500/20 hover:border-primary/50",
+                    due && !done && !excused && "bg-red-500/10 border-red-500/20 hover:border-primary/50",
                     due && done && "bg-emerald-500/80 border-emerald-600 hover:bg-emerald-500",
+                    excused && !done && "bg-yellow-400/70 border-yellow-500",
                     today && "ring-2 ring-primary ring-offset-1 ring-offset-background"
                   )}
                 />
@@ -107,9 +119,10 @@ export function HabitDetailDialog({ habit, onOpenChange }: HabitDetailDialogProp
             <span className="flex items-center gap-2">
               <span className="inline-block size-2.5 rounded-sm bg-emerald-500" aria-hidden /> done
               <span className="inline-block size-2.5 rounded-sm bg-red-500/40" aria-hidden /> missed
+              <span className="inline-block size-2.5 rounded-sm bg-yellow-400" aria-hidden /> excused
               <span className="inline-block size-2.5 rounded-sm bg-muted/50" aria-hidden /> off-day
             </span>
-            <span>click a day to toggle · ring = today</span>
+            <span>graced (30d): {gracedRecently}</span>
           </p>
         </div>
 

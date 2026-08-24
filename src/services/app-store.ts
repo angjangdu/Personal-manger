@@ -4,11 +4,13 @@ import type {
   DailyReview,
   Goal,
   Habit,
+  HabitGraceLog,
   HabitLog,
   Milestone,
   Note,
   OccurrenceOverride,
   Project,
+  ProjectStatus,
   RescheduleLog,
   StudySession,
   StudySubject,
@@ -64,6 +66,8 @@ export interface AppState {
   rescheduleLogs: RescheduleLog[];
   /** Local preferences (sleep window, etc.). */
   settings: UserSettings;
+  /** Excused habit misses. */
+  habitGraceLogs: HabitGraceLog[];
 }
 
 export interface TaskInput {
@@ -87,6 +91,7 @@ export interface ProjectInput {
   color?: string;
   goalId?: string;
   deadline?: string;
+  status?: ProjectStatus;
 }
 
 export interface GoalInput {
@@ -174,6 +179,7 @@ function seedState(): AppState {
     occurrenceOverrides: {},
     rescheduleLogs: [],
     settings: { sleepStart: "23:00", sleepEnd: "07:00" },
+    habitGraceLogs: [],
   };
 }
 
@@ -432,6 +438,7 @@ class AppStore {
       color: input.color,
       goalId: input.goalId || undefined,
       deadline: input.deadline || undefined,
+      status: input.status ?? "active",
       archived: false,
       createdAt: nowIso,
       updatedAt: nowIso,
@@ -452,6 +459,7 @@ class AppStore {
               description: patch.description?.trim() || undefined,
               goalId: patch.goalId !== undefined ? patch.goalId || undefined : project.goalId,
               deadline: patch.deadline !== undefined ? patch.deadline || undefined : project.deadline,
+              status: patch.status ?? project.status ?? "active",
               updatedAt: new Date().toISOString(),
             }
           : project
@@ -653,9 +661,34 @@ class AppStore {
   updateSettings(patch: Partial<UserSettings>) {
     this.set((s) => ({ ...s, settings: { ...s.settings, ...patch } }));
   }
+
+  // ── Habit grace ──────────────────────────────────────────────────────────
+
+  /** Excuses a missed habit day (doesn't break the streak). */
+  addHabitGraceLog(
+    input: Omit<HabitGraceLog, "id" | "createdAt">
+  ) {
+    const existing = this.state.habitGraceLogs.find(
+      (log) => log.habitId === input.habitId && log.dateKey === input.dateKey
+    );
+    if (existing) return;
+    const entry: HabitGraceLog = {
+      ...input,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    this.set((s) => ({ ...s, habitGraceLogs: [entry, ...s.habitGraceLogs] }));
+  }
+
+  deleteHabitGraceLog(id: string) {
+    this.set((s) => ({
+      ...s,
+      habitGraceLogs: s.habitGraceLogs.filter((log) => log.id !== id),
+    }));
+  }
   // (section)
   // Durations are always computed from timestamps, never trusted from a
-  // client timer (architecture doc Â§9).
+//   client timer (architecture doc section 9).
 
   startActivity(input: {
     title: string;

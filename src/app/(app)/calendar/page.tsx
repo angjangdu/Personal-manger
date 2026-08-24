@@ -30,7 +30,7 @@ import {
   startOfWeek,
 } from "@/lib/date-utils";
 import type { CalendarItem } from "@/lib/calendar-selectors";
-import type { CalendarEvent, Task } from "@/types";
+import type { CalendarEvent, RescheduleLog, Task } from "@/types";
 
 type ViewKey = "day" | "3days" | "week" | "month" | "agenda";
 
@@ -174,7 +174,7 @@ export default function CalendarPage() {
       title: pendingMove.title,
       fromStart: pendingMove.fromStartIso,
       toStart: pendingMove.toStartIso,
-      reason: move.reason,
+      reason: move.reason as RescheduleLog["reason"],
       note: move.note,
     });
     toast("Moved", { description: "Reason saved for your reschedule report." });

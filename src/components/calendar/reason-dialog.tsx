@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
-const REASONS = [
+const DEFAULT_REASONS = [
   { value: "not_enough_time", label: "Not enough time" },
   { value: "higher_priority", label: "Higher-priority task came up" },
   { value: "unexpected_event", label: "Unexpected event" },
@@ -24,22 +24,39 @@ const REASONS = [
   { value: "other", label: "Other" },
 ] as const;
 
+export interface ReasonOption {
+  value: string;
+  label: string;
+}
+
 export interface MoveReason {
-  reason: (typeof REASONS)[number]["value"];
+  reason: string;
   note?: string;
 }
 
 interface ReasonDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** What is being moved, shown for context. */
+  /** What is being moved/explained, shown for context. */
   title: string;
   onConfirm: (move: MoveReason) => void;
+  /** Custom option list (defaults to reschedule reasons). */
+  options?: ReasonOption[];
+  heading?: string;
+  description?: string;
 }
 
-/** Captures why a scheduled item is being moved — feeds reschedule reports. */
-export function ReasonDialog({ open, onOpenChange, title, onConfirm }: ReasonDialogProps) {
-  const [reason, setReason] = useState<MoveReason["reason"] | null>(null);
+/** Captures a reason with optional note — used by moves and habit misses. */
+export function ReasonDialog({
+  open,
+  onOpenChange,
+  title,
+  onConfirm,
+  options = DEFAULT_REASONS as unknown as ReasonOption[],
+  heading = "Why are you moving this?",
+  description,
+}: ReasonDialogProps) {
+  const [reason, setReason] = useState<string | null>(null);
   const [note, setNote] = useState("");
 
   if (!open) return null;
@@ -48,12 +65,15 @@ export function ReasonDialog({ open, onOpenChange, title, onConfirm }: ReasonDia
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Why are you moving this?</DialogTitle>
-          <DialogDescription className="truncate">“{title}”</DialogDescription>
+          <DialogTitle>{heading}</DialogTitle>
+          <DialogDescription className="truncate">{title}</DialogDescription>
+          {description ? (
+            <p className="text-muted-foreground text-xs">{description}</p>
+          ) : null}
         </DialogHeader>
 
         <div className="space-y-1.5" role="radiogroup" aria-label="Reason">
-          {REASONS.map((option) => (
+          {options.map((option) => (
             <button
               key={option.value}
               type="button"

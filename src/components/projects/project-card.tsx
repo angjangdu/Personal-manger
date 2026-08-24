@@ -14,6 +14,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { appStore } from "@/services/app-store";
 import { useNow } from "@/hooks/use-now";
+import { projectDeadlineHealth, PROJECT_STATUS_LABELS } from "@/lib/health-utils";
 import type { Project } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +29,11 @@ export function ProjectCard({ project, counts, onEdit }: ProjectCardProps) {
   const now = useNow(60000);
   const percent =
     counts.total > 0 ? Math.round((counts.completed / counts.total) * 100) : 0;
+  const health = projectDeadlineHealth(project, percent, now);
+  const statusLabel =
+    project.status && project.status !== "active"
+      ? PROJECT_STATUS_LABELS[project.status]
+      : null;
   const daysLeft = project.deadline
     ? Math.ceil((new Date(project.deadline).getTime() - now) / 86400000)
     : null;
@@ -42,7 +48,9 @@ export function ProjectCard({ project, counts, onEdit }: ProjectCardProps) {
         />
         <Link href={`/projects/${project.id}`} className="min-w-0 flex-1">
           <h3 className="truncate text-sm font-semibold">{project.name}</h3>
-          {project.description ? (
+          {statusLabel ? (
+            <p className="text-muted-foreground mt-0.5 text-xs">{statusLabel}</p>
+          ) : project.description ? (
             <p className="text-muted-foreground mt-0.5 line-clamp-1 text-xs">
               {project.description}
             </p>
@@ -99,11 +107,22 @@ export function ProjectCard({ project, counts, onEdit }: ProjectCardProps) {
         <span className="tabular-nums">
           {counts.completed}/{counts.total} tasks · {percent}%
         </span>
-        {daysLeft !== null && (
+        {health?.state !== "on_track" && health?.message ? (
+          <span
+            className={cn(
+              "rounded border px-1.5 py-px text-[10px] font-semibold",
+              health.state === "behind"
+                ? "border-red-500/50 text-red-600 dark:text-red-400"
+                : "border-yellow-500/60 text-yellow-700 dark:text-yellow-400"
+            )}
+          >
+            {health.message}
+          </span>
+        ) : daysLeft !== null ? (
           <span className={cn(daysLeft <= 7 && "font-medium text-orange-600 dark:text-orange-400")}>
             {daysLeft >= 0 ? `${daysLeft}d left` : `${Math.abs(daysLeft)}d overdue`}
           </span>
-        )}
+        ) : null}
       </p>
 
       {!project.archived && (

@@ -16,6 +16,10 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { HabitFormDialog } from "@/components/habits/habit-form-dialog";
 import { HabitDetailDialog } from "@/components/habits/habit-detail-dialog";
+import {
+  ReasonDialog,
+  type MoveReason,
+} from "@/components/calendar/reason-dialog";
 import { appStore } from "@/services/app-store";
 import { useAppState } from "@/hooks/use-app-state";
 import { useNow } from "@/hooks/use-now";
@@ -23,14 +27,24 @@ import {
   completedDayKeys,
   computeStreak,
   consistency,
+  graceDayKeys,
   isCompletedOn,
   isHabitDueOn,
+  unexcusedMisses,
 } from "@/lib/habit-utils";
 import { addDays, startOfDay } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 import type { Habit } from "@/types";
 
 const WEEKDAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
+
+const HABIT_MISS_REASONS = [
+  { value: "forgot", label: "I forgot" },
+  { value: "too_busy", label: "Too busy" },
+  { value: "too_tired", label: "Too tired / low energy" },
+  { value: "not_feeling_well", label: "Not feeling well" },
+  { value: "other", label: "Other" },
+] as const;
 
 export default function HabitsPage() {
   const state = useAppState();
@@ -142,7 +156,13 @@ export default function HabitsPage() {
                   </button>
                   <span className="text-muted-foreground hidden shrink-0 items-center gap-1 text-xs tabular-nums sm:flex">
                     <Flame className="size-3.5 text-orange-500" aria-hidden />
-                    {computeStreak(habit, keys, now)} · {consistency(habit, keys, now)}%
+                    {computeStreak(
+                      habit,
+                      keys,
+                      now,
+                      graceDayKeys(state.habitGraceLogs, habit.id)
+                    )}{" "}
+                    · {consistency(habit, keys, now)}%
                   </span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -207,8 +227,23 @@ function TodayHabitRow({
   now: Date;
   onOpenDetail: () => void;
 }) {
-  const keys = completedDayKeys(useAppState().habitLogs, habit.id);
+  const state = useAppState();
+  const keys = completedDayKeys(state.habitLogs, habit.id);
+  const graceKeys = graceDayKeys(state.habitGraceLogs, habit.id);
   const done = isCompletedOn(keys, now);
+  const streak = computeStreak(habit, keys, now, graceKeys);
+  const misses = unexcusedMisses(habit, keys, graceKeys, now);
+
+  // Grace flow (review §13): missed yesterday? ask why — excused misses
+  // don't break the streak.
+  const yesterday = addDays(startOfDay(now), -1);
+  const missedYesterday =
+    isHabitDueOn(habit, yesterday) &&
+    !isCompletedOn(keys, yesterday) &&
+    !graceKeys.has(
+      `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`
+    );
+  const [askWhyOpen, setAskWhyOpen] = useState(false);
 
   // Last 7 days mini-strip.
   const week = Array.from({ length: 7 }, (_, i) => addDays(startOfDay(now), i - 6));
@@ -235,16 +270,60 @@ function TodayHabitRow({
         <span className={cn("block truncate text-sm font-medium", done && "text-muted-foreground line-through")}>
           {habit.name}
         </span>
-        <span className="text-muted-foreground flex items-center gap-1 text-xs tabular-nums">
-          <Flame className="size-3 text-orange-500" aria-hidden />
-          {computeStreak(habit, keys, now)} day streak · {consistency(habit, keys, now)}% consistent
+        <span className="text-muted-foreground flex items-center gap-2 text-xs tabular-nums">
+          <span className="flex items-center gap-1">
+            <Flame className="size-3 text-orange-500" aria-hidden />
+            {streak}d
+          </span>
+          <span>{consistency(habit, keys, now)}%</span>
+          {misses > 0 && (
+            <span
+              className={cn(
+                "size-2 rounded-full",
+                misses >= 2 ? "bg-red-500" : "bg-yellow-500"
+              )}
+              aria-label={`${misses} unexcused miss${misses > 1 ? "es" : ""} this week`}
+            />
+          )}
         </span>
       </button>
+
+      {missedYesterday && (
+        <>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 border-yellow-500/60 px-2 text-[11px] text-yellow-700 dark:text-yellow-400"
+            onClick={() => setAskWhyOpen(true)}
+          >
+            Missed yesterday · why?
+          </Button>
+          <ReasonDialog
+            open={askWhyOpen}
+            onOpenChange={setAskWhyOpen}
+            heading={`Missed “${habit.name}” yesterday`}
+            title="Excused misses don't break your streak."
+            options={HABIT_MISS_REASONS as unknown as { value: string; label: string }[]}
+            onConfirm={(move: MoveReason) => {
+              appStore.addHabitGraceLog({
+                habitId: habit.id,
+                dateKey: `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`,
+                reason: move.reason as "forgot",
+                note: move.note,
+              });
+              toast("Noted — that day is excused");
+              setAskWhyOpen(false);
+            }}
+          />
+        </>
+      )}
 
       <div className="flex shrink-0 gap-1" aria-hidden>
         {week.map((day) => {
           const due = isHabitDueOn(habit, day);
+          const dayKey = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
           const hit = isCompletedOn(keys, day);
+          const excused = graceKeys.has(dayKey);
           return (
             <span
               key={day.toISOString()}
@@ -252,8 +331,9 @@ function TodayHabitRow({
               className={cn(
                 "size-2.5 rounded-full",
                 !due && "bg-muted/50",
-                due && !hit && "bg-red-500/30",
-                due && hit && "bg-emerald-500"
+                due && !hit && !excused && "bg-red-500/30",
+                due && hit && "bg-emerald-500",
+                excused && "bg-yellow-400"
               )}
             />
           );

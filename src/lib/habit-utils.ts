@@ -1,4 +1,4 @@
-import type { Habit, HabitLog } from "@/types";
+import type { Habit, HabitGraceLog, HabitLog } from "@/types";
 import { addDays, isSameDay, startOfDay } from "@/lib/date-utils";
 
 export function toDayKey(date: Date): string {
@@ -17,6 +17,18 @@ export function completedDayKeys(logs: HabitLog[], habitId: string): Set<string>
   return keys;
 }
 
+/** Day keys excused via the grace flow — don't break streaks. */
+export function graceDayKeys(
+  logs: HabitGraceLog[],
+  habitId: string
+): Set<string> {
+  const keys = new Set<string>();
+  for (const log of logs) {
+    if (log.habitId === habitId) keys.add(log.dateKey);
+  }
+  return keys;
+}
+
 /** JS getDay() convention: 0=Sun … 6=Sat. */
 export function isHabitDueOn(habit: Habit, date: Date): boolean {
   if (habit.schedule === "daily") return true;
@@ -28,28 +40,28 @@ export function isCompletedOn(keys: Set<string>, date: Date): boolean {
 }
 
 /**
- * Current streak = consecutive due days completed, counting backwards.
- * Today gets grace: an incomplete today doesn't break the streak if
- * yesterday's due day was completed. Streaks are a signal, not a score —
- * pair with consistency().
+ * Current streak = consecutive due days completed or excused (grace),
+ * counting backwards. Today gets grace. Unexcused misses beyond the
+ * rolling quota break the streak (review §13).
  */
 export function computeStreak(
   habit: Habit,
   keys: Set<string>,
-  now: Date
+  now: Date,
+  graceKeys: Set<string> = new Set()
 ): number {
   let cursor = startOfDay(now);
-  // Grace for today.
   if (isHabitDueOn(habit, cursor) && !isCompletedOn(keys, cursor)) {
     cursor = addDays(cursor, -1);
   }
   let streak = 0;
   for (let i = 0; i < 366; i++) {
+    const key = toDayKey(cursor);
     if (!isHabitDueOn(habit, cursor)) {
       cursor = addDays(cursor, -1);
       continue;
     }
-    if (isCompletedOn(keys, cursor)) {
+    if (isCompletedOn(keys, cursor) || graceKeys.has(key)) {
       streak++;
       cursor = addDays(cursor, -1);
     } else {
@@ -57,6 +69,28 @@ export function computeStreak(
     }
   }
   return streak;
+}
+
+/** Unexcused misses in the last N due days — drives the warning state. */
+export function unexcusedMisses(
+  habit: Habit,
+  keys: Set<string>,
+  graceKeys: Set<string>,
+  now: Date,
+  dueDaysWindow = 7
+): number {
+  let misses = 0;
+  let countedDue = 0;
+  let cursor = addDays(startOfDay(now), -1); // today handled separately
+  for (let i = 0; i < 60 && countedDue < dueDaysWindow; i++) {
+    if (isHabitDueOn(habit, cursor)) {
+      countedDue++;
+      const key = toDayKey(cursor);
+      if (!isCompletedOn(keys, cursor) && !graceKeys.has(key)) misses++;
+    }
+    cursor = addDays(cursor, -1);
+  }
+  return misses;
 }
 
 /** Longest run of completed due days within the lookback window ending yesterday. */

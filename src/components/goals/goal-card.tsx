@@ -17,6 +17,7 @@ import { appStore } from "@/services/app-store";
 import { useAppState } from "@/hooks/use-app-state";
 import { useNow } from "@/hooks/use-now";
 import { selectGoalProgress } from "@/lib/selectors";
+import { goalHealth, HEALTH_META } from "@/lib/health-utils";
 import type { Goal } from "@/types";
 
 interface GoalCardProps {
@@ -29,6 +30,7 @@ export function GoalCard({ goal, onEdit }: GoalCardProps) {
   // Minute tick keeps day-level countdowns fresh.
   const now = useNow(60000);
   const percent = selectGoalProgress(state, goal);
+  const healthMeta = HEALTH_META[goalHealth(state, goal, now)];
   const projectCount = state.projects.filter((p) => p.goalId === goal.id).length;
   const milestoneDone = goal.milestones.filter((m) => m.completedAt).length;
   const daysLeft = goal.deadline
@@ -45,6 +47,11 @@ export function GoalCard({ goal, onEdit }: GoalCardProps) {
             </Link>
             {goal.category ? (
               <Badge variant="secondary" className="text-[10px]">{goal.category}</Badge>
+            ) : null}
+            {healthMeta.label ? (
+              <Badge variant="outline" className={`text-[10px] ${healthMeta.className}`}>
+                {healthMeta.label}
+              </Badge>
             ) : null}
           </div>
           {goal.description ? (

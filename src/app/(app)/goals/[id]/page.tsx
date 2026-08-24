@@ -35,6 +35,7 @@ import { appStore } from "@/services/app-store";
 import { useAppState } from "@/hooks/use-app-state";
 import { useNow } from "@/hooks/use-now";
 import { selectGoalProgress, selectVisibleTasks, sortTasksBy } from "@/lib/selectors";
+import { goalHealth, HEALTH_META } from "@/lib/health-utils";
 import type { Task } from "@/types";
 
 export default function GoalDetailPage() {
@@ -109,6 +110,14 @@ export default function GoalDetailPage() {
         {goal.category ? (
           <Badge variant="secondary">{goal.category}</Badge>
         ) : null}
+        {(() => {
+          const meta = HEALTH_META[goalHealth(state, goal, now)];
+          return meta.label ? (
+            <Badge variant="outline" className={meta.className}>
+              {meta.label}
+            </Badge>
+          ) : null;
+        })()}
         <Badge variant={goal.archived ? "secondary" : "outline"}>
           {goal.archived ? "Archived" : "Active"}
         </Badge>

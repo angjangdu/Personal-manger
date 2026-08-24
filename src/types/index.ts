@@ -70,6 +70,12 @@ export interface Task {
   skipped?: boolean;
 }
 
+export type ProjectStatus =
+  | "not_started"
+  | "active"
+  | "on_hold"
+  | "completed";
+
 export interface Project {
   id: string;
   name: string;
@@ -77,6 +83,7 @@ export interface Project {
   color?: string;
   goalId?: string;
   deadline?: string;
+  status?: ProjectStatus;
   archived: boolean;
   createdAt: string;
   updatedAt: string;
@@ -196,6 +203,21 @@ export interface UserSettings {
   sleepStart: string;
   /** "HH:MM" — when the user wakes up. */
   sleepEnd: string;
+}
+
+/** Excused habit miss — doesn't break streaks (review §13 grace flow). */
+export interface HabitGraceLog {
+  id: string;
+  habitId: string;
+  dateKey: string;
+  reason:
+    | "forgot"
+    | "too_busy"
+    | "too_tired"
+    | "not_feeling_well"
+    | "other";
+  note?: string;
+  createdAt: string;
 }
 
 export interface Tag {
