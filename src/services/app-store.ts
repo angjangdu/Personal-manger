@@ -155,6 +155,8 @@ export interface SessionInput {
 export interface NoteInput {
   title: string;
   content: string;
+  folder?: string;
+  pinned?: boolean;
   tagIds: string[];
   linkedTaskIds?: string[];
   linkedProjectIds?: string[];
@@ -736,7 +738,15 @@ class AppStore {
     return activity;
   }
 
-  updateActivity(id: string, patch: Partial<Pick<Activity, "category" | "notes" | "title">>) {
+  updateActivity(
+    id: string,
+    patch: Partial<
+      Pick<
+        Activity,
+        "category" | "notes" | "title" | "studySubjectId" | "studyTopicId"
+      >
+    >
+  ) {
     this.set((s) => ({
       ...s,
       activities: s.activities.map((activity) =>
@@ -811,6 +821,26 @@ class AppStore {
           : a
       ),
     }));
+
+    // Study-linked sessions (review §14): stopping the timer records a
+    // study session automatically.
+    if (activity.studySubjectId) {
+      const sessionDate = new Date(activity.startedAt);
+      const session: StudySession = {
+        id: crypto.randomUUID(),
+        subjectId: activity.studySubjectId,
+        topicId: activity.studyTopicId,
+        type: "study",
+        date: new Date(
+          sessionDate.getFullYear(),
+          sessionDate.getMonth(),
+          sessionDate.getDate()
+        ).toISOString(),
+        durationMinutes,
+        createdAt: new Date().toISOString(),
+      };
+      this.set((s) => ({ ...s, studySessions: [session, ...s.studySessions] }));
+    }
   }
 
   deleteActivity(id: string) {
@@ -1016,6 +1046,8 @@ class AppStore {
       id: crypto.randomUUID(),
       title: input.title.trim() || "Untitled",
       content: input.content,
+      folder: input.folder?.trim() || undefined,
+      pinned: input.pinned ?? false,
       tagIds: input.tagIds,
       linkedTaskIds: input.linkedTaskIds ?? [],
       linkedProjectIds: input.linkedProjectIds ?? [],
@@ -1036,6 +1068,11 @@ class AppStore {
               ...note,
               ...patch,
               title: patch.title?.trim() || note.title,
+              folder:
+                patch.folder !== undefined
+                  ? patch.folder?.trim() || undefined
+                  : note.folder,
+              pinned: patch.pinned !== undefined ? patch.pinned : note.pinned,
               linkedStudyTopicId:
                 patch.linkedStudyTopicId !== undefined
                   ? patch.linkedStudyTopicId || undefined

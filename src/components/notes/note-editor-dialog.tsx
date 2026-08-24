@@ -54,6 +54,8 @@ function NoteEditorFields({ note, onClose }: { note?: Note; onClose: () => void 
   const [title, setTitle] = useState(note?.title ?? "");
   const [content, setContent] = useState(note?.content ?? "");
   const [tagIds, setTagIds] = useState<string[]>(note?.tagIds ?? []);
+  const [folder, setFolder] = useState(note?.folder ?? "");
+  const [pinned, setPinned] = useState(note?.pinned ?? false);
   const [taskIds, setTaskIds] = useState<string[]>(note?.linkedTaskIds ?? []);
   const [projectIds, setProjectIds] = useState<string[]>(note?.linkedProjectIds ?? []);
   const [topicId, setTopicId] = useState(note?.linkedStudyTopicId ?? "");
@@ -81,6 +83,8 @@ function NoteEditorFields({ note, onClose }: { note?: Note; onClose: () => void 
     const input: NoteInput = {
       title,
       content,
+      folder,
+      pinned,
       tagIds,
       linkedTaskIds: taskIds,
       linkedProjectIds: projectIds,
@@ -113,6 +117,7 @@ function NoteEditorFields({ note, onClose }: { note?: Note; onClose: () => void 
             submit();
           }}
         >
+        <div className="grid grid-cols-2 gap-3">
           <Input
             placeholder="Note title"
             value={title}
@@ -120,6 +125,29 @@ function NoteEditorFields({ note, onClose }: { note?: Note; onClose: () => void 
             className="text-base font-semibold"
             aria-label="Title"
           />
+          <Input
+            list="note-folder-suggestions"
+            placeholder="Folder (e.g. Physics)"
+            value={folder}
+            onChange={(e) => setFolder(e.target.value)}
+            aria-label="Folder"
+          />
+          <datalist id="note-folder-suggestions">
+            {[...new Set(state.notes.map((n) => n.folder).filter(Boolean))].map((f) => (
+              <option key={f} value={f} />
+            ))}
+          </datalist>
+        </div>
+
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={pinned}
+            onChange={(e) => setPinned(e.target.checked)}
+            className="accent-current size-4"
+          />
+          Pin to top
+        </label>
 
           <Tabs defaultValue="edit">
             <TabsList className="w-full justify-start">

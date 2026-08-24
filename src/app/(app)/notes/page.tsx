@@ -5,9 +5,10 @@ import Link from "next/link";
 import {
   BookOpen,
   ListTodo,
-  Pencil,
+  Pin,
   Plus,
   Search,
+  Zap as ZapIcon,
 } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { NoteEditorDialog } from "@/components/notes/note-editor-dialog";
+import { QuickCaptureDialog } from "@/components/notes/quick-capture-dialog";
 import { useAppState } from "@/hooks/use-app-state";
 import { searchNotes } from "@/lib/note-utils";
 import type { Note } from "@/types";
@@ -31,17 +33,30 @@ export default function NotesPage() {
   const state = useAppState();
   const [query, setQuery] = useState("");
   const [tagFilter, setTagFilter] = useState("");
+  const [folderFilter, setFolderFilter] = useState("");
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<Note | undefined>(undefined);
+  const [captureOpen, setCaptureOpen] = useState(false);
 
   // React Compiler auto-memoizes.
   const visible = searchNotes(state.notes, query)
     .filter((note) => !tagFilter || note.tagIds.includes(tagFilter))
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    .filter((note) => !folderFilter || (note.folder ?? "") === folderFilter)
+    .sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      return b.updatedAt.localeCompare(a.updatedAt);
+    });
+
+  const folders = (
+    state.notes.map((n) => n.folder).filter(Boolean) as string[]
+  ).sort();
 
   return (
     <>
       <PageHeader title="Notes" description={`${state.notes.length} notes across your workspace`}>
+        <Button variant="outline" onClick={() => setCaptureOpen(true)}>
+          <ZapIcon aria-hidden /> Quick capture
+        </Button>
         <Button onClick={() => { setEditing(undefined); setEditorOpen(true); }}>
           <Plus aria-hidden /> New note
         </Button>
@@ -75,6 +90,24 @@ export default function NotesPage() {
             ))}
           </SelectContent>
         </Select>
+        {folders.length > 0 && (
+          <Select
+            value={folderFilter || "all"}
+            onValueChange={(v) => setFolderFilter(v === "all" ? "" : v)}
+          >
+            <SelectTrigger className="w-[150px]" aria-label="Filter by folder">
+              <SelectValue placeholder="All folders" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All folders</SelectItem>
+              {folders.map((folder) => (
+                <SelectItem key={folder} value={folder}>
+                  {folder}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <span className="text-muted-foreground ml-auto text-xs tabular-nums" role="status">
           {visible.length} shown
         </span>
@@ -84,7 +117,7 @@ export default function NotesPage() {
         <Empty className="rounded-lg border border-dashed">
           <EmptyHeader>
             <EmptyMedia variant="icon">
-              <Pencil aria-hidden />
+              <BookOpen aria-hidden />
             </EmptyMedia>
             <EmptyTitle>
               {state.notes.length === 0 ? "No notes yet" : "No matches"}
@@ -112,6 +145,7 @@ export default function NotesPage() {
       )}
 
       <NoteEditorDialog open={editorOpen} onOpenChange={setEditorOpen} note={editing} />
+      <QuickCaptureDialog open={captureOpen} onOpenChange={setCaptureOpen} />
     </>
   );
 }
@@ -126,9 +160,20 @@ function NoteCard({ note, onOpen }: { note: Note; onOpen: () => void }) {
     <button
       type="button"
       onClick={onOpen}
-      className="group hover:border-primary/40 flex h-full flex-col rounded-xl border p-4 text-left transition-colors"
+      className="group hover:border-primary/40 relative flex h-full flex-col rounded-xl border p-4 text-left transition-colors"
     >
-      <h3 className="truncate text-sm font-semibold">{note.title || "Untitled"}</h3>
+      {note.pinned && (
+        <Pin
+          className="text-yellow-500 absolute right-3 top-3 size-3.5 fill-current"
+          aria-label="Pinned"
+        />
+      )}
+      {note.folder && (
+        <span className="bg-muted text-muted-foreground mb-1.5 w-fit rounded px-1.5 py-0.5 text-[10px] font-medium">
+          {note.folder}
+        </span>
+      )}
+      <h3 className="truncate pr-6 text-sm font-semibold">{note.title || "Untitled"}</h3>
 
       <div className="prose prose-sm dark:prose-invert mt-1 line-clamp-4 max-w-none text-xs opacity-80 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
         <Markdown remarkPlugins={[remarkGfm]}>

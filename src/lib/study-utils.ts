@@ -12,6 +12,14 @@ export function subjectProgress(
   return Math.round((mastered / leaves.length) * 100);
 }
 
+export function unitProgress(topics: StudyTopic[], unitId: string): number {
+  const leaves = topics.filter((t) => t.parentId === unitId);
+  if (leaves.length === 0) return 0;
+  return Math.round(
+    (leaves.filter((t) => t.status === "mastered").length / leaves.length) * 100
+  );
+}
+
 export function subjectStats(state: AppState, subject: StudySubject, nowMs: number) {
   const topics = state.studyTopics.filter((t) => t.subjectId === subject.id);
   const units = topics.filter((t) => !t.parentId);
@@ -46,5 +54,72 @@ export function subjectStats(state: AppState, subject: StudySubject, nowMs: numb
               100
           )
         : 0,
+  };
+}
+
+/** Study report (review §14): hours per subject, top topic, topics completed. */
+export function studyReport(state: AppState, nowMs: number) {
+  void nowMs;
+  const perSubject: {
+    subjectId: string;
+    name: string;
+    color?: string;
+    minutes: number;
+  }[] = [];
+  let topicsCompleted = 0;
+  const topicMinutes = new Map<string, number>();
+
+  for (const subject of state.studySubjects) {
+    const minutes =
+      state.studySessions
+        .filter((s) => s.subjectId === subject.id)
+        .reduce((sum, s) => sum + s.durationMinutes, 0) +
+      state.activities
+        .filter((a) => a.studySubjectId === subject.id)
+        .reduce((sum, a) => sum + (a.durationMinutes ?? 0), 0);
+    if (minutes > 0 || !subject.archived) {
+      perSubject.push({
+        subjectId: subject.id,
+        name: subject.name,
+        color: subject.color,
+        minutes,
+      });
+    }
+    topicsCompleted += state.studyTopics.filter(
+      (t) => t.subjectId === subject.id && t.parentId && t.status === "mastered"
+    ).length;
+  }
+
+  for (const session of state.studySessions) {
+    if (!session.topicId) continue;
+    topicMinutes.set(
+      session.topicId,
+      (topicMinutes.get(session.topicId) ?? 0) + session.durationMinutes
+    );
+  }
+  for (const activity of state.activities) {
+    if (!activity.studyTopicId) continue;
+    topicMinutes.set(
+      activity.studyTopicId,
+      (topicMinutes.get(activity.studyTopicId) ?? 0) +
+        (activity.durationMinutes ?? 0)
+    );
+  }
+
+  let topTopic: { name: string; minutes: number } | null = null;
+  for (const [topicId, minutes] of topicMinutes) {
+    const topic = state.studyTopics.find((t) => t.id === topicId);
+    if (!topic) continue;
+    if (!topTopic || minutes > topTopic.minutes) {
+      topTopic = { name: topic.name, minutes };
+    }
+  }
+
+  const totalMinutes = perSubject.reduce((sum, s) => sum + s.minutes, 0);
+  return {
+    perSubject: perSubject.sort((a, b) => b.minutes - a.minutes),
+    totalMinutes,
+    topicsCompleted,
+    topTopic,
   };
 }

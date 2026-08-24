@@ -21,7 +21,7 @@ import { LogSessionDialog } from "@/components/study/log-session-dialog";
 import { appStore } from "@/services/app-store";
 import { useAppState } from "@/hooks/use-app-state";
 import { useNow } from "@/hooks/use-now";
-import { subjectStats } from "@/lib/study-utils";
+import { subjectStats, studyReport } from "@/lib/study-utils";
 import { formatMinutes } from "@/lib/date-utils";
 import type { StudySubject } from "@/types";
 
@@ -51,6 +51,50 @@ export default function StudyPage() {
           <Plus aria-hidden /> New subject
         </Button>
       </PageHeader>
+
+      {/* Study report (review §14) */}
+      {(() => {
+        const report = studyReport(state, nowMs);
+        if (report.totalMinutes === 0 && state.studySubjects.length === 0) return null;
+        return (
+          <div className="mb-6 grid gap-3 rounded-xl border p-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div>
+              <p className="text-muted-foreground text-xs">Total tracked</p>
+              <p className="mt-1 text-xl font-bold tabular-nums">{formatMinutes(report.totalMinutes)}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Topics completed</p>
+              <p className="mt-1 text-xl font-bold tabular-nums">{report.topicsCompleted}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Top topic</p>
+              <p className="mt-1 truncate text-sm font-semibold">
+                {report.topTopic
+                  ? `${report.topTopic.name} · ${formatMinutes(report.topTopic.minutes)}`
+                  : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">By subject</p>
+              <ul className="mt-1 space-y-0.5 text-xs tabular-nums">
+                {report.perSubject.slice(0, 3).map((s) => (
+                  <li key={s.subjectId} className="flex items-center justify-between gap-2">
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span
+                        className="size-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: s.color ?? "var(--primary)" }}
+                        aria-hidden
+                      />
+                      <span className="truncate">{s.name}</span>
+                    </span>
+                    <span>{formatMinutes(s.minutes)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        );
+      })()}
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as "active" | "archived")} className="mb-4">
         <TabsList>

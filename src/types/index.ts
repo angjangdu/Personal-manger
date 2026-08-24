@@ -128,6 +128,9 @@ export interface Activity {
   taskId?: string;
   projectId?: string;
   category?: ActivityCategory;
+  /** Links a tracked session to the study hierarchy (review §14). */
+  studySubjectId?: string;
+  studyTopicId?: string;
   startedAt: string;
   endedAt?: string;
   pausedAt?: string;
@@ -230,6 +233,8 @@ export interface Note {
   id: string;
   title: string;
   content: string;
+  folder?: string;
+  pinned?: boolean;
   tagIds: string[];
   linkedTaskIds: string[];
   linkedProjectIds: string[];

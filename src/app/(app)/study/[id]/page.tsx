@@ -38,7 +38,7 @@ import { LogSessionDialog } from "@/components/study/log-session-dialog";
 import { appStore } from "@/services/app-store";
 import { useAppState } from "@/hooks/use-app-state";
 import { useNow } from "@/hooks/use-now";
-import { subjectStats } from "@/lib/study-utils";
+import { subjectStats, unitProgress } from "@/lib/study-utils";
 import { formatMinutes } from "@/lib/date-utils";
 import type { StudyTopic, StudyTopicStatus } from "@/types";
 
@@ -93,6 +93,31 @@ export default function SubjectDetailPage() {
   }
 
   const stats = subjectStats(state, subject, nowMs);
+
+  function startStudyTimer(topic?: StudyTopic) {
+    if (!subject) return;
+    const running = state.activities.find((a) => !a.endedAt);
+    if (running) {
+      toast("A session is already running", {
+        description: "Stop it before starting a study timer.",
+      });
+      return;
+    }
+    const activity = appStore.startActivity({
+      title: topic
+        ? `${subject.name} · ${topic.name}`
+        : `${subject.name}`,
+      category: "study",
+    });
+    if (!activity) return;
+    appStore.updateActivity(activity.id, {
+      studySubjectId: subject.id,
+      studyTopicId: topic?.id,
+    });
+    toast("Study timer started", {
+      description: "A study session is recorded automatically when you stop.",
+    });
+  }
 
   function addUnit() {
     if (!subject || !unitDraft.trim()) return;
@@ -181,6 +206,32 @@ export default function SubjectDetailPage() {
       </div>
 
       {/* Units & topics */}
+      {/* Syllabus progress (review §14) */}
+      <section className="mb-8 rounded-xl border p-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold">Syllabus</h3>
+          <Button size="sm" variant="secondary" onClick={() => startStudyTimer()}>
+            Start study timer
+          </Button>
+        </div>
+        <div className="space-y-2.5">
+          {unitsWithTopics.map(({ unit, topics }) => (
+            <div key={unit.id}>
+              <div className="mb-1 flex items-baseline justify-between gap-2 text-xs">
+                <span className="truncate font-medium">{unit.name}</span>
+                <span className="text-muted-foreground tabular-nums">
+                  {topics.filter((t) => t.status === "mastered").length}/{topics.length}
+                </span>
+              </div>
+              <Progress value={unitProgress(topics, unit.id)} aria-label={`${unit.name} progress`} />
+            </div>
+          ))}
+          {unitsWithTopics.length === 0 && (
+            <p className="text-muted-foreground text-sm">Add units below to build your syllabus.</p>
+          )}
+        </div>
+      </section>
+
       <section className="mb-8">
         <h3 className="mb-2 text-sm font-semibold">Units &amp; topics</h3>
 
@@ -252,6 +303,17 @@ export default function SubjectDetailPage() {
                           rev {new Date(topic.lastRevisedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                         </span>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs opacity-0 transition-opacity group-hover/topic:opacity-100 focus-visible:opacity-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startStudyTimer(topic);
+                        }}
+                      >
+                        Timer
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
