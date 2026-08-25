@@ -23,7 +23,7 @@ export function ProjectsWidget({ projects, taskCounts, className }: ProjectsWidg
           const counts = taskCounts[project.id] ?? { total: 0, completed: 0 };
           const percent = counts.total > 0 ? Math.round((counts.completed / counts.total) * 100) : 0;
           const deadline = project.deadline
-            ? new Date(project.deadline).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+            ? new Date(project.deadline).toLocaleDateString("en-GB", { month: "short", day: "numeric" })
             : null;
           return (
             <Link

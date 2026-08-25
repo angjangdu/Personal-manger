@@ -228,7 +228,7 @@ function NoteCard({ note, onOpen }: { note: Note; onOpen: () => void }) {
           </Link>
         )}
         <span className="text-muted-foreground ml-auto tabular-nums">
-          {new Date(note.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+          {new Date(note.updatedAt).toLocaleDateString("en-GB", { month: "short", day: "numeric" })}
         </span>
       </div>
 

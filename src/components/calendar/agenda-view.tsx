@@ -29,7 +29,7 @@ export function AgendaView({ items, rangeStart, days, onItemClick }: AgendaViewP
       {byDay.map(({ date, items: dayItems }) => (
         <section key={date.toISOString()}>
           <h3 className="text-muted-foreground mb-1.5 text-xs font-semibold uppercase tracking-wide">
-            {date.toLocaleDateString(undefined, {
+            {date.toLocaleDateString("en-GB", {
               weekday: "long",
               month: "short",
               day: "numeric",
@@ -80,12 +80,12 @@ export function AgendaView({ items, rangeStart, days, onItemClick }: AgendaViewP
                       </span>
                     </span>
                     <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
-                      {new Date(item.startMs).toLocaleTimeString(undefined, {
+                      {new Date(item.startMs).toLocaleTimeString("en-GB", {
                         hour: "numeric",
                         minute: "2-digit",
                       })}
                       {item.kind !== "task" &&
-                        ` – ${new Date(item.endMs).toLocaleTimeString(undefined, {
+                        ` – ${new Date(item.endMs).toLocaleTimeString("en-GB", {
                           hour: "numeric",
                           minute: "2-digit",
                         })}`}

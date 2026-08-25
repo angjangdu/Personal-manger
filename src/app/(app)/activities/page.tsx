@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import {
@@ -212,10 +212,10 @@ export default function ActivitiesPage() {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">{activity.title}</span>
                       <span className="text-muted-foreground block truncate text-xs tabular-nums">
-                        {new Date(activity.startedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                        {new Date(activity.startedAt).toLocaleDateString("en-GB", { month: "short", day: "numeric" })}
                         {" · "}
-                        {new Date(activity.startedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
-                        –{activity.endedAt ? new Date(activity.endedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : ""}
+                        {new Date(activity.startedAt).toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit" })}
+                        –{activity.endedAt ? new Date(activity.endedAt).toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit" }) : ""}
                         {project ? ` · ${project.name}` : ""}
                         {activity.category ? ` · ${categoryLabel(activity.category)}` : ""}
                       </span>
@@ -277,7 +277,7 @@ function TimelineHistory({
       {[...groups.entries()].map(([key, dayActivities]) => (
         <section key={key}>
           <h4 className="text-muted-foreground mb-1.5 text-xs font-semibold uppercase tracking-wide">
-            {new Date(key).toLocaleDateString(undefined, {
+            {new Date(key).toLocaleDateString("en-GB", {
               weekday: "long",
               month: "short",
               day: "numeric",
@@ -309,8 +309,8 @@ function TimelineHistory({
                     )}
                   </span>
                   <span className="text-muted-foreground block text-xs tabular-nums">
-                    {new Date(activity.startedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
-                    –{activity.endedAt ? new Date(activity.endedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : ""}
+                    {new Date(activity.startedAt).toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit" })}
+                    –{activity.endedAt ? new Date(activity.endedAt).toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit" }) : ""}
                     {" · "}
                     {formatMinutes(activity.durationMinutes ?? 0)}
                   </span>

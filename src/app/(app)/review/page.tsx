@@ -96,7 +96,7 @@ export default function ReviewPage() {
       toImprove: toImprove ?? review?.toImprove ?? "",
       tomorrowPriority: tomorrowPriority ?? review?.tomorrowPriority ?? "",
     });
-    toast("Review saved", { description: dayStart.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }) });
+    toast("Review saved", { description: dayStart.toLocaleDateString("en-GB", { weekday: "long", month: "long", day: "numeric" }) });
   }
 
   return (
@@ -120,7 +120,7 @@ export default function ReviewPage() {
 
       <p className="mb-4 flex items-center gap-2 text-sm font-semibold">
         <CalendarClock className="size-4 text-muted-foreground" aria-hidden />
-        {dayStart.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+        {dayStart.toLocaleDateString("en-GB", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
         {review ? (
           <span className="text-muted-foreground inline-flex items-center gap-1 text-xs font-normal">
             <Check className="size-3.5 text-emerald-500" aria-hidden /> reviewed

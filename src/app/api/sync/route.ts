@@ -192,7 +192,7 @@ export async function POST(request: Request) {
     await syncTable("tasks", payload.tasks.map((t) => taskToRow(t, ownerId)));
 
     const subtaskRows = payload.tasks.flatMap((t) =>
-      t.subtasks.map((st) => subtaskToRow(st, ownerId))
+      t.subtasks.map((st) => subtaskToRow(st))
     );
     await syncTable("subtasks", subtaskRows, "id", {
       column: "task_id",

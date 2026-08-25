@@ -66,7 +66,7 @@ export function MonthView({ cells, month, items, nowMs, onDayClick, onItemClick 
                 "min-h-24 border-border/60 space-y-1 overflow-hidden border-b border-r p-1.5 text-left transition-colors hover:bg-accent/50 [&:nth-child(7n)]:border-r-0",
                 !inMonth && "bg-muted/20"
               )}
-              aria-label={`Open ${cell.toLocaleDateString(undefined, { month: "long", day: "numeric" })}`}
+              aria-label={`Open ${cell.toLocaleDateString("en-GB", { month: "long", day: "numeric" })}`}
             >
               <span
                 className={cn(

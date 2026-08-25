@@ -143,7 +143,7 @@ export default function GoalDetailPage() {
             <p className="mt-1 flex items-center gap-2 text-sm font-semibold">
               <CalendarClock className="size-4 shrink-0" aria-hidden />
               {goal.deadline
-                ? new Date(goal.deadline).toLocaleDateString(undefined, {
+                ? new Date(goal.deadline).toLocaleDateString("en-GB", {
                     month: "short",
                     day: "numeric",
                     year: "numeric",
@@ -206,7 +206,7 @@ export default function GoalDetailPage() {
               </span>
               <span className="text-muted-foreground hidden w-24 shrink-0 text-right text-[11px] tabular-nums sm:inline">
                 {milestone.completedAt
-                  ? `done ${new Date(milestone.completedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+                  ? `done ${new Date(milestone.completedAt).toLocaleDateString("en-GB", { month: "short", day: "numeric" })}`
                   : ""}
               </span>
               <button

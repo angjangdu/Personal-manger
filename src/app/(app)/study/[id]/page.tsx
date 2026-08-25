@@ -305,7 +305,7 @@ export default function SubjectDetailPage() {
                       <span className="min-w-0 flex-1 truncate text-sm">{topic.name}</span>
                       {topic.lastRevisedAt && (
                         <span className="text-muted-foreground hidden shrink-0 text-[11px] tabular-nums sm:inline">
-                          rev {new Date(topic.lastRevisedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                          rev {new Date(topic.lastRevisedAt).toLocaleDateString("en-GB", { month: "short", day: "numeric" })}
                         </span>
                       )}
                       <Button
@@ -438,7 +438,7 @@ export default function SubjectDetailPage() {
                       {topic?.name ?? session.notes ?? "Session"}
                     </span>
                     <span className="text-muted-foreground hidden w-24 shrink-0 text-right text-xs tabular-nums sm:inline">
-                      {new Date(session.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                      {new Date(session.date).toLocaleDateString("en-GB", { month: "short", day: "numeric" })}
                     </span>
                     <span className="w-14 shrink-0 text-right text-sm font-semibold tabular-nums">
                       {formatMinutes(session.durationMinutes)}

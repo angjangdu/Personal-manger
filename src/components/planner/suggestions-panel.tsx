@@ -140,7 +140,7 @@ export function SuggestionsPanel() {
       taskId: suggestion.task.virtual?.templateId ?? suggestion.task.id,
     });
     toast("Slot booked", {
-      description: `${start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })} · ${formatMinutes(suggestion.gap.endMin - suggestion.gap.startMin)}`,
+      description: `${start.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit" })} · ${formatMinutes(suggestion.gap.endMin - suggestion.gap.startMin)}`,
     });
     setDismissed((prev) => new Set(prev).add(keyOf(suggestion.task)));
   }
@@ -219,5 +219,5 @@ function dayStartPlus(dayStart: Date, minutes: number): number {
 
 function fmtTime(date: Date, minutes: number): string {
   const d = new Date(dayStartPlus(date, minutes));
-  return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return d.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit" });
 }

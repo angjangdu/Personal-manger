@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/theme-provider";
 import { Download, BedDouble, Moon, RotateCcw, Sun } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/page-header";

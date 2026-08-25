@@ -216,7 +216,7 @@ export default function PlannerPage() {
           className="border-input bg-background h-8 rounded-md border px-2 text-sm tabular-nums"
           aria-label="Pick a date"
         />
-        <h3 className="text-sm font-semibold">{dayStart.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</h3>
+        <h3 className="text-sm font-semibold">{dayStart.toLocaleDateString("en-GB", { weekday: "long", month: "long", day: "numeric" })}</h3>
       </div>
 
       {/* Schedule suggestions (accept/dismiss — nothing auto-books) */}

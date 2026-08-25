@@ -87,13 +87,13 @@ export function buildReport(state: AppState, days: number, nowMs: number): Repor
       .filter((a) => isSameDay(new Date(a.startedAt), day))
       .reduce((sum, a) => sum + (a.durationMinutes ?? 0), 0);
     byDay.push({
-      label: day.toLocaleDateString(undefined, { weekday: "short" }),
+      label: day.toLocaleDateString("en-GB", { weekday: "short" }),
       completions,
       focus,
     });
     if (!best || completions > best.completions) {
       best = {
-        label: day.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" }),
+        label: day.toLocaleDateString("en-GB", { weekday: "long", month: "short", day: "numeric" }),
         date: day,
         completions,
       };

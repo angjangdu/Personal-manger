@@ -112,7 +112,7 @@ export function TimeGrid({
           return (
             <div key={day.toISOString()} className="px-2 py-2 text-center">
               <p className="text-muted-foreground text-[11px] uppercase tracking-wide">
-                {day.toLocaleDateString(undefined, { weekday: "short" })}
+                {day.toLocaleDateString("en-GB", { weekday: "short" })}
               </p>
               <p
                 className={cn(

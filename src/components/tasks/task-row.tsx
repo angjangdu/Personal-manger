@@ -128,7 +128,7 @@ export function TaskRow({ task, onEdit }: TaskRowProps) {
           {task.dueDate && (
             <span className="inline-flex items-center gap-1 tabular-nums">
               <CalendarClock className="size-3" aria-hidden />
-              {new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+              {new Date(task.dueDate).toLocaleDateString("en-GB", { month: "short", day: "numeric" })}
               {task.dueTime ? `, ${task.dueTime}` : ""}
             </span>
           )}

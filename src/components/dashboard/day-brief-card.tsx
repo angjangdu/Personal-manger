@@ -65,7 +65,7 @@ export function DayBriefCard() {
               {nextEvent && (
                 <span className="text-muted-foreground block truncate text-xs font-normal">
                   next: {nextEvent.title} ·{" "}
-                  {new Date(nextEvent.startMs).toLocaleTimeString(undefined, {
+                  {new Date(nextEvent.startMs).toLocaleTimeString("en-GB", {
                     hour: "numeric",
                     minute: "2-digit",
                   })}

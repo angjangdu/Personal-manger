@@ -221,7 +221,7 @@ export default function FilesPage() {
                   <span className="block truncate text-sm font-medium">{file.name}</span>
                   <span className="text-muted-foreground block truncate text-xs tabular-nums">
                     {formatBytes(file.sizeBytes)} ·{" "}
-                    {new Date(file.uploadedAt).toLocaleDateString(undefined, {
+                    {new Date(file.uploadedAt).toLocaleDateString("en-GB", {
                       month: "short",
                       day: "numeric",
                     })}

@@ -139,7 +139,7 @@ export default function ProjectDetailPage() {
             <p className="mt-1 flex items-center gap-2 text-sm font-semibold">
               <CalendarClock className="size-4 shrink-0" aria-hidden />
               {project.deadline
-                ? new Date(project.deadline).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+                ? new Date(project.deadline).toLocaleDateString("en-GB", { month: "short", day: "numeric", year: "numeric" })
                 : "None set"}
             </p>
             {daysLeft !== null && (
@@ -220,7 +220,7 @@ export default function ProjectDetailPage() {
                   {formatMinutes(activity.durationMinutes ?? 0)}
                 </span>
                 <span className="text-muted-foreground hidden w-24 shrink-0 text-right text-xs sm:inline">
-                  {new Date(activity.startedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  {new Date(activity.startedAt).toLocaleDateString("en-GB", { month: "short", day: "numeric" })}
                 </span>
               </li>
             ))}

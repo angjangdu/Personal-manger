@@ -261,7 +261,7 @@ export default function ReportsPage() {
                     <li key={log.id} className="text-muted-foreground flex items-center gap-2">
                       <MoveRight className="size-3 shrink-0" aria-hidden />
                       <span className="min-w-0 flex-1 truncate">{log.title}</span>
-                      <span>{new Date(log.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                      <span>{new Date(log.createdAt).toLocaleDateString("en-GB", { month: "short", day: "numeric" })}</span>
                     </li>
                   ))}
                 </ul>
@@ -311,7 +311,7 @@ export default function ReportsPage() {
               {report.reviews.slice(0, 4).map((review) => (
                 <li key={review.id} className="rounded-lg border p-3 text-sm">
                   <p className="text-muted-foreground mb-1.5 text-xs">
-                    {new Date(review.date).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
+                    {new Date(review.date).toLocaleDateString("en-GB", { weekday: "long", month: "short", day: "numeric" })}
                   </p>
                   {review.wentWell && (
                     <p className="truncate">

@@ -19,14 +19,14 @@ export function isSameDay(a: Date, b: Date): boolean {
 }
 
 export function formatTime(date: Date): string {
-  return date.toLocaleTimeString(undefined, {
+  return date.toLocaleTimeString("en-GB", {
     hour: "numeric",
     minute: "2-digit",
   });
 }
 
 export function formatDate(date: Date): string {
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString("en-GB", {
     weekday: "long",
     month: "long",
     day: "numeric",

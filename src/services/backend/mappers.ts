@@ -112,7 +112,7 @@ export type SubtaskRow = {
   completed: boolean; position: number; created_at: string;
 };
 /** No user_id column — ownership inherits through the parent task. */
-export const subtaskToRow = (st: Subtask, _userId: string): Omit<SubtaskRow, "never"> => ({
+export const subtaskToRow = (st: Subtask): Omit<SubtaskRow, "never"> => ({
   id: st.id, task_id: st.taskId, title: st.title,
   completed: st.completed, position: st.order, created_at: st.createdAt,
 });

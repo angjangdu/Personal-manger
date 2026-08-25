@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
@@ -184,13 +184,13 @@ export default function CalendarPage() {
   const periodLabel = (() => {
     switch (view) {
       case "month":
-        return cursor.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+        return cursor.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
       case "agenda":
-        return `${rangeStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${addDays(rangeStart, 13).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+        return `${rangeStart.toLocaleDateString("en-GB", { month: "short", day: "numeric" })} – ${addDays(rangeStart, 13).toLocaleDateString("en-GB", { month: "short", day: "numeric" })}`;
       case "week":
-        return `${rangeStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${rangeEnd.getDate()}, ${rangeEnd.getFullYear()}`;
+        return `${rangeStart.toLocaleDateString("en-GB", { month: "short", day: "numeric" })} – ${rangeEnd.getDate()}, ${rangeEnd.getFullYear()}`;
       default:
-        return cursor.toLocaleDateString(undefined, {
+        return cursor.toLocaleDateString("en-GB", {
           weekday: "long",
           month: "long",
           day: "numeric",
