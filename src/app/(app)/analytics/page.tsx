@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlarmClock,
@@ -38,44 +38,33 @@ export default function AnalyticsPage() {
   const nowMs = useNow(60000);
   const [focusRange, setFocusRange] = useState<RangeKey>("14");
 
-  const completionBars = tasksCompletedPerDay(state, 7, nowMs);
-  const focusBars =
-    focusRange === "7"
-      ? focusMinutesPerDay(state, 7, nowMs)
-      : focusRange === "14"
-        ? focusMinutesPerDay(state, 14, nowMs)
-        : focusMinutesPerDay(state, 30, nowMs);
+  const completionBars = useMemo(() => tasksCompletedPerDay(state, 7, nowMs), [state, nowMs]);
+  const focusBars = useMemo(() => {
+    if (focusRange === "7") return focusMinutesPerDay(state, 7, nowMs);
+    if (focusRange === "14") return focusMinutesPerDay(state, 14, nowMs);
+    return focusMinutesPerDay(state, 30, nowMs);
+  }, [state, focusRange, nowMs]);
 
-  // React Compiler auto-memoizes these.
-  const distribution: DistributionSlice[] = focusDistributionByProject(
-    state,
-    30,
-    nowMs
-  ).map((slice, i) => ({
-    ...slice,
-    color: slice.color.startsWith("#") || slice.color.startsWith("var")
-      ? slice.color
-      : DONUT_COLORS[i % DONUT_COLORS.length],
-  }));
-  const goals = goalProgressRows(state);
-  const habits = habitConsistencyRows(state, nowMs);
+  const distribution: DistributionSlice[] = useMemo(
+    () =>
+      focusDistributionByProject(state, 30, nowMs).map((slice, i) => ({
+        ...slice,
+        color: slice.color.startsWith("#") || slice.color.startsWith("var") ? slice.color : DONUT_COLORS[i % DONUT_COLORS.length],
+      })),
+    [state, nowMs]
+  );
+  const goals = useMemo(() => goalProgressRows(state), [state]);
+  const habits = useMemo(() => habitConsistencyRows(state, nowMs), [state, nowMs]);
 
-  const completed30 = state.tasks.filter(
-    (t) =>
-      t.completedAt &&
-      new Date(t.completedAt).getTime() > nowMs - 30 * 86400000
-  ).length;
-  const activeCount = state.tasks.filter(
-    (t) => t.status !== "completed" && t.status !== "cancelled"
-  ).length;
-  const overdueCount = state.tasks.filter(
-    (t) =>
-      t.dueDate &&
-      new Date(t.dueDate).getTime() < nowMs &&
-      t.status !== "completed" &&
-      t.status !== "cancelled"
-  ).length;
-  const totalFocus30 = focusBars.reduce((s, b) => s + b.value, 0);
+  const { completed30, activeCount, overdueCount } = useMemo(() => {
+    const c30 = state.tasks.filter((t) => t.completedAt && new Date(t.completedAt).getTime() > nowMs - 30 * 86400000).length;
+    const active = state.tasks.filter((t) => t.status !== "completed" && t.status !== "cancelled").length;
+    const overdue = state.tasks.filter(
+      (t) => t.dueDate && new Date(t.dueDate).getTime() < nowMs && t.status !== "completed" && t.status !== "cancelled"
+    ).length;
+    return { completed30: c30, activeCount: active, overdueCount: overdue };
+  }, [state.tasks, nowMs]);
+  const totalFocus30 = useMemo(() => focusBars.reduce((s, b) => s + b.value, 0), [focusBars]);
 
   return (
     <>

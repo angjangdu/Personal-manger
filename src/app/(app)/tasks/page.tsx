@@ -68,7 +68,12 @@ export default function TasksPage() {
     return sortTasksBy(filtered, toolbar.sort);
   }, [allTasks, state, view, toolbar]);
 
-  const overall = selectTaskCounts(allTasks);
+  // Phase 31: paginate large lists (50/page) to keep rendering O(page) not O(n)
+  const PAGE_SIZE = 50;
+  const [page, setPage] = useState(1);
+  const pagedTasks = useMemo(() => visibleTasks.slice(0, page * PAGE_SIZE), [visibleTasks, page]);
+
+  const overall = useMemo(() => selectTaskCounts(allTasks), [allTasks]);
 
   function openCreate() {
     setEditing(undefined);
@@ -113,8 +118,13 @@ export default function TasksPage() {
         />
       </div>
 
-      <p className="text-muted-foreground mb-2 text-xs tabular-nums" role="status">
-        Showing {visibleTasks.length} of {allTasks.length} tasks
+      <p className="text-muted-foreground mb-2 flex items-center gap-3 text-xs tabular-nums" role="status">
+        <span>Showing {Math.min(pagedTasks.length, visibleTasks.length)} of {visibleTasks.length} tasks</span>
+        {page * PAGE_SIZE < visibleTasks.length && (
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => p + 1)}>
+            Load more ({visibleTasks.length - pagedTasks.length} remaining)
+          </Button>
+        )}
       </p>
 
       {visibleTasks.length === 0 ? (
@@ -140,7 +150,7 @@ export default function TasksPage() {
         </Empty>
       ) : (
         <ul className="divide-y overflow-hidden rounded-xl border">
-          {visibleTasks.map((task) => (
+          {pagedTasks.map((task) => (
             <TaskRow key={task.id} task={task} onEdit={openEdit} />
           ))}
         </ul>

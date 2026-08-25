@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { CalendarClock, MoreHorizontal, Pencil, Paperclip, Repeat, Star, Trash2, Timer, XCircle } from "lucide-react";
 import { TaskFilesDialog } from "@/components/tasks/task-files-dialog";
 import { toast } from "sonner";
@@ -43,30 +43,35 @@ interface TaskRowProps {
   onEdit: (task: Task) => void;
 }
 
-export function TaskRow({ task, onEdit }: TaskRowProps) {
+function TaskRowInner({ task, onEdit }: TaskRowProps) {
   const state = useAppState();
   const nowMs = useNow(60000);
-  const project = state.projects.find((p) => p.id === task.projectId);
+  const project = useMemo(() => state.projects.find((p) => p.id === task.projectId), [state.projects, task.projectId]);
   const done = task.status === "completed";
   const cancelled = task.status === "cancelled";
-  const subDone = task.subtasks.filter((s) => s.completed).length;
+  const subDone = useMemo(() => task.subtasks.filter((s) => s.completed).length, [task.subtasks]);
   const templateId = task.virtual?.templateId ?? task.id;
 
   // Planned vs actual (review §10): tracked time on this task/series.
-  const actualMinutes = state.activities
-    .filter((a) => a.taskId && a.taskId.split("#")[0] === templateId)
-    .reduce(
-      (sum, a) =>
-        sum +
-        Math.round(
-          a.durationMinutes ??
-            (nowMs - new Date(a.startedAt).getTime() - a.totalPausedMs) / 60000
+  const actualMinutes = useMemo(
+    () =>
+      state.activities
+        .filter((a) => a.taskId && a.taskId.split("#")[0] === templateId)
+        .reduce(
+          (sum, a) =>
+            sum +
+            Math.round(
+              a.durationMinutes ??
+                (nowMs - new Date(a.startedAt).getTime() - a.totalPausedMs) / 60000
+            ),
+          0
         ),
-      0
-    );
-  const fileCount = state.attachments.filter(
-    (a) => a.taskId && a.taskId.split("#")[0] === templateId
-  ).length;
+    [state.activities, templateId, nowMs]
+  );
+  const fileCount = useMemo(
+    () => state.attachments.filter((a) => a.taskId && a.taskId.split("#")[0] === templateId).length,
+    [state.attachments, templateId]
+  );
   const [filesOpen, setFilesOpen] = useState(false);
 
   function remove() {
@@ -222,3 +227,5 @@ export function TaskRow({ task, onEdit }: TaskRowProps) {
     </li>
   );
 }
+
+export const TaskRow = memo(TaskRowInner);

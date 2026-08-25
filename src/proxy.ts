@@ -39,6 +39,13 @@ export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isLogin = path === "/login";
   const isApi = path.startsWith("/api");
+  const isPwaAsset =
+    path === "/manifest.webmanifest" ||
+    path === "/sw.js" ||
+    path === "/offline.html" ||
+    path.startsWith("/icons/");
+
+  if (isPwaAsset) return response;
 
   if (!user && !isLogin && !isApi) {
     const redirect = request.nextUrl.clone();

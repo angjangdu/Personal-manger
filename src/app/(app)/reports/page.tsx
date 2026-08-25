@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   CalendarCheck,
   Eye,
@@ -91,8 +91,8 @@ export default function ReportsPage() {
   const [period, setPeriod] = useState<PeriodKey>("7");
 
   const days = Number(period) as 7 | 14 | 30;
-  const report = buildReport(state, days, nowMs);
-  const hidden = new Set(state.settings.hiddenReportSections ?? []);
+  const report = useMemo(() => buildReport(state, days, nowMs), [state, days, nowMs]);
+  const hidden = useMemo(() => new Set(state.settings.hiddenReportSections ?? []), [state.settings.hiddenReportSections]);
 
   function toggleSection(id: string) {
     const next = hidden.has(id)
