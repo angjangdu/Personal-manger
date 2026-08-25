@@ -48,13 +48,13 @@ export default function FilesPage() {
   const state = useAppState();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
-  const [kindFilter, setKindFilter] = useState("all");
+  const [kindFilter, setKindFilter] = useState("");
   const [tagFilterIds, setTagFilterIds] = useState<string[]>([]);
   const [tagPickerId, setTagPickerId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const files = state.attachments
-    .filter((a) => !kindFilter || a.kind === kindFilter)
+    .filter((a) => !kindFilter || kindFilter === "all" || a.kind === kindFilter)
     .filter((a) => tagFilterIds.every((id) => a.tagIds.includes(id)))
     .filter((a) => a.name.toLowerCase().includes(query.trim().toLowerCase()))
     .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));

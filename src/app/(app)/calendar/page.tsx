@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MonthView } from "@/components/calendar/month-view";
 import { TimeGrid } from "@/components/calendar/time-grid";
@@ -54,6 +55,9 @@ export default function CalendarPage() {
   const [prefill, setPrefill] = useState<EventDialogPrefill | undefined>(undefined);
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
 
+  // Month grid covers 6 weeks (42 cells) — compute once for range.
+  const monthCells = view === "month" ? monthGridCells(cursor) : [];
+
   // On mobile the week collapses to a single day (UI/UX doc §5).
   const effectiveDays =
     isMobile && view === "week"
@@ -64,16 +68,24 @@ export default function CalendarPage() {
           ? Array.from({ length: 3 }, (_, i) => addDays(startOfDay(cursor), i))
           : view === "week"
             ? Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(cursor), i))
-            : [];
+            : view === "month"
+              ? monthCells
+              : [];
 
   const rangeStart =
     view === "agenda"
       ? startOfDay(cursor)
-      : (effectiveDays[0] ?? startOfDay(cursor));
+      : view === "month"
+        ? monthCells[0] ?? startOfDay(cursor)
+        : (effectiveDays[0] ?? startOfDay(cursor));
   const rangeEnd = (() => {
     if (view === "agenda") return addDays(startOfDay(cursor), 13);
+    if (view === "month") {
+      const last = monthCells[monthCells.length - 1];
+      return last ? new Date(last.getFullYear(), last.getMonth(), last.getDate(), 23, 59, 59, 999) : addDays(startOfDay(cursor), 30);
+    }
     const last = effectiveDays[effectiveDays.length - 1];
-    return new Date(last.getFullYear(), last.getMonth(), last.getDate(), 23, 59, 59, 999);
+    return last ? new Date(last.getFullYear(), last.getMonth(), last.getDate(), 23, 59, 59, 999) : addDays(startOfDay(cursor), 1);
   })();
   const minuteTick = Math.floor(nowMs / 60000);
 
@@ -220,6 +232,16 @@ export default function CalendarPage() {
           <Button variant="outline" size="icon-sm" onClick={() => navigate(1)} aria-label="Next">
             <ChevronRight aria-hidden />
           </Button>
+          <Input
+            type="date"
+            aria-label="Go to date"
+            value={cursor.toISOString().slice(0, 10)}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v) setCursor(new Date(v + "T00:00:00"));
+            }}
+            className="ml-1 h-8 w-[150px]"
+          />
         </div>
         <h3 className="text-sm font-semibold">{periodLabel}</h3>
         <Tabs value={view} onValueChange={(v) => setView(v as ViewKey)} className="ml-auto">
@@ -235,7 +257,7 @@ export default function CalendarPage() {
 
       {view === "month" ? (
         <MonthView
-          cells={monthGridCells(cursor)}
+          cells={monthCells}
           month={cursor.getMonth()}
           items={items}
           nowMs={nowMs}

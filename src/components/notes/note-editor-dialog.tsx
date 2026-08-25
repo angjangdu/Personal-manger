@@ -112,8 +112,8 @@ function NoteEditorFields({ note, onClose }: { note?: Note; onClose: () => void 
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90vh] flex-col p-0 sm:max-w-2xl">
+        <DialogHeader className="shrink-0 px-6 pt-6">
           <DialogTitle>{note ? "Edit note" : "New note"}</DialogTitle>
           <DialogDescription>
             Markdown supported · link the note to related work
@@ -121,12 +121,13 @@ function NoteEditorFields({ note, onClose }: { note?: Note; onClose: () => void 
         </DialogHeader>
 
         <form
-          className="space-y-4"
+          className="flex min-h-0 flex-1 flex-col"
           onSubmit={(e) => {
             e.preventDefault();
             submit();
           }}
         >
+          <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
         <div className="grid grid-cols-2 gap-3">
           <Input
             placeholder="Note title"
@@ -290,7 +291,8 @@ function NoteEditorFields({ note, onClose }: { note?: Note; onClose: () => void 
             </div>
           ) : null}
 
-          <DialogFooter className={note ? "justify-between sm:justify-between" : ""}>
+          </div>
+          <DialogFooter className={note ? "shrink-0 justify-between border-t px-6 py-4 sm:justify-between" : "shrink-0 border-t px-6 py-4"}>
             {note ? (
               <Button
                 type="button"

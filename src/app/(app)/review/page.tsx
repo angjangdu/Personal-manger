@@ -5,8 +5,6 @@ import {
   BookOpen,
   CalendarClock,
   Check,
-  ChevronLeft,
-  ChevronRight,
   Flame,
   Save,
   Target,
@@ -15,6 +13,7 @@ import {
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
@@ -28,7 +27,7 @@ import {
   isHabitDueOn,
   toDayKey,
 } from "@/lib/habit-utils";
-import { addDays, formatMinutes, isSameDay, startOfDay } from "@/lib/date-utils";
+import { formatMinutes, isSameDay, startOfDay } from "@/lib/date-utils";
 
 export default function ReviewPage() {
   const state = useAppState();
@@ -105,15 +104,22 @@ export default function ReviewPage() {
         title="Daily review"
         description="Close the loop — what happened, and what's next."
       >
-        <div className="flex items-center gap-1">
-          <Button variant="outline" size="icon-sm" onClick={() => setCursor(addDays(cursor, -1))} aria-label="Previous day">
-            <ChevronLeft aria-hidden />
-          </Button>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="review-date" className="text-sm font-medium">
+            Review Date
+          </Label>
+          <Input
+            id="review-date"
+            type="date"
+            value={dayStart.toISOString().slice(0, 10)}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v) setCursor(new Date(v + "T00:00:00"));
+            }}
+            className="h-8 w-[150px]"
+          />
           <Button variant="outline" size="sm" onClick={() => setCursor(new Date())}>
             Today
-          </Button>
-          <Button variant="outline" size="icon-sm" onClick={() => setCursor(addDays(cursor, 1))} aria-label="Next day">
-            <ChevronRight aria-hidden />
           </Button>
         </div>
       </PageHeader>

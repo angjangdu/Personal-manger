@@ -222,8 +222,8 @@ function TaskFormFields({ task, defaultProjectId, defaultGoalId, onClose }: Task
     : newSubtasks.map((s) => ({ ...s, completed: false }));
 
   return (
-    <DialogContent className="sm:max-w-lg">
-      <DialogHeader>
+    <DialogContent className="flex max-h-[90vh] flex-col p-0 sm:max-w-lg">
+      <DialogHeader className="shrink-0 px-6 pt-6">
         <DialogTitle>{editingTask ? "Edit task" : "New task"}</DialogTitle>
         <DialogDescription>
           {editingTask
@@ -233,12 +233,13 @@ function TaskFormFields({ task, defaultProjectId, defaultGoalId, onClose }: Task
       </DialogHeader>
 
       <form
-        className="space-y-4"
+        className="flex min-h-0 flex-1 flex-col"
         onSubmit={(e) => {
           e.preventDefault();
           submit();
         }}
       >
+        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
         <div className="space-y-2">
           <Label htmlFor="task-title">Title</Label>
           <Input
@@ -524,7 +525,8 @@ function TaskFormFields({ task, defaultProjectId, defaultGoalId, onClose }: Task
           </>
         )}
 
-        <DialogFooter>
+        </div>
+        <DialogFooter className="shrink-0 border-t px-6 py-4">
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
