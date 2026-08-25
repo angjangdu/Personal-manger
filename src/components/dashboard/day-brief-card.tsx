@@ -60,10 +60,10 @@ export function DayBriefCard() {
             <p className="text-muted-foreground text-[11px] uppercase tracking-wide">
               Today
             </p>
-            <p className="font-medium tabular-nums">
+            <p className="font-medium tabular-nums" suppressHydrationWarning>
               {tasksDueToday.length} task{tasksDueToday.length === 1 ? "" : "s"} due
               {nextEvent && (
-                <span className="text-muted-foreground block truncate text-xs font-normal">
+                <span className="text-muted-foreground block truncate text-xs font-normal" suppressHydrationWarning>
                   next: {nextEvent.title} ·{" "}
                   {new Date(nextEvent.startMs).toLocaleTimeString("en-GB", {
                     hour: "numeric",
@@ -105,9 +105,9 @@ export function DayBriefCard() {
             <p className="text-muted-foreground text-[11px] uppercase tracking-wide">
               Free time left
             </p>
-            <p className="font-medium tabular-nums">{formatMinutes(model.freeMinutes)}</p>
+            <p className="font-medium tabular-nums" suppressHydrationWarning>{formatMinutes(model.freeMinutes)}</p>
             {model.nextFreeGap ? (
-              <p className="text-muted-foreground flex items-center gap-1 truncate text-xs font-normal">
+              <p className="text-muted-foreground flex items-center gap-1 truncate text-xs font-normal" suppressHydrationWarning>
                 <AlarmClock className="size-3" aria-hidden />
                 from{" "}
                 {new Date(dayStart.getTime() + model.nextFreeGap.startMin * 60000).toLocaleTimeString(

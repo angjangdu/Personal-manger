@@ -273,6 +273,7 @@ function StatTile({
           className={`mt-1 text-2xl font-bold tabular-nums ${
             tone === "warn" && value !== "0" ? "text-orange-600 dark:text-orange-400" : ""
           }`}
+          suppressHydrationWarning
         >
           {value}
         </p>

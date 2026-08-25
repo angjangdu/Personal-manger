@@ -110,7 +110,7 @@ export function ProjectCard({ project, counts, onEdit }: ProjectCardProps) {
 
       <Progress value={percent} aria-label={`${project.name} progress`} />
 
-      <p className="text-muted-foreground mt-2.5 flex items-center justify-between text-xs">
+      <p suppressHydrationWarning className="text-muted-foreground mt-2.5 flex items-center justify-between text-xs">
         <span className="tabular-nums">
           {counts.completed}/{counts.total} tasks · {percent}%
           {fileCount > 0 && (

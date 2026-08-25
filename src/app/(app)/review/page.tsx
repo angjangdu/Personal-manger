@@ -243,7 +243,7 @@ function RecapTile({
         {icon}
         {label}
       </p>
-      <p className="mt-1 text-2xl font-bold tabular-nums">{value}</p>
+      <p className="mt-1 text-2xl font-bold tabular-nums" suppressHydrationWarning>{value}</p>
       {hint && <p className="text-muted-foreground mt-1 text-xs">{hint}</p>}
     </div>
   );

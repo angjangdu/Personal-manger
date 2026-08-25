@@ -84,6 +84,7 @@ export function CurrentActivityCard({
           className="text-4xl font-bold tabular-nums tracking-tight"
           role="timer"
           aria-label="Elapsed time"
+          suppressHydrationWarning
         >
           {formatElapsed(elapsed)}
         </p>

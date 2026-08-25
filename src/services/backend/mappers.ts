@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type {
   Activity,
   Attachment,
@@ -22,16 +23,38 @@ import type {
 
 /**
  * Row ↔ domain mappers for every entity (Phase 22/23).
- * Rows mirror supabase/schema.sql; domain types mirror src/types.
- * `s` converts undefined→null for inserts, `u` the reverse for reads.
+ *
+ * Seed/demo ids are slugs ("task-1", tag "study"), while Postgres id columns
+ * are uuid. toUuid() converts any id deterministically (same input → same
+ * uuid), and is applied to primary keys AND every reference field so foreign
+ * keys always resolve. After the first pull the client store holds real
+ * uuids everywhere.
  */
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Deterministic slug→uuid (md5, version-8 formatted). */
+export function toUuid(id: string): string {
+  if (UUID_RE.test(id)) return id.toLowerCase();
+  const hex = createHash("md5").update(id).digest("hex");
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    "8" + hex.slice(13, 16),
+    ((parseInt(hex.slice(16, 18), 16) & 0x3f) | 0x80).toString(16).padStart(2, "0") + hex.slice(18, 20),
+    hex.slice(20, 32),
+  ].join("-");
+}
+
+const U = toUuid;
+const uuidArray = (ids: string[] | undefined): string[] => (ids ?? []).map(U);
 
 const s = <T,>(v: T | undefined): T | null => (v === undefined ? null : v);
 const u = <T,>(v: T | null | undefined): T | undefined => (v === undefined || v === null ? undefined : v);
 
 // ── Tags ────────────────────────────────────────────────────────────────
 export type TagRow = { id: string; user_id: string | null; name: string; color: string | null };
-export const tagToRow = (t: Tag, userId: string): TagRow => ({ id: t.id, user_id: userId, name: t.name, color: s(t.color) });
+export const tagToRow = (t: Tag, userId: string): TagRow => ({ id: U(t.id), user_id: userId, name: t.name, color: s(t.color) });
 export const tagFromRow = (r: TagRow): Tag => ({ id: r.id, name: r.name, color: u(r.color) });
 
 // ── Projects ────────────────────────────────────────────────────────────
@@ -42,8 +65,8 @@ export type ProjectRow = {
   created_at: string; updated_at: string;
 };
 export const projectToRow = (p: Project, userId: string): ProjectRow => ({
-  id: p.id, user_id: userId, name: p.name, description: s(p.description),
-  color: s(p.color), goal_id: s(p.goalId), deadline: s(p.deadline),
+  id: U(p.id), user_id: userId, name: p.name, description: s(p.description),
+  color: s(p.color), goal_id: p.goalId ? U(p.goalId) : null, deadline: s(p.deadline),
   status: s(p.status), archived: p.archived, created_at: p.createdAt, updated_at: p.updatedAt,
 });
 export const projectFromRow = (r: ProjectRow): Project => ({
@@ -59,7 +82,7 @@ export type GoalRow = {
   created_at: string; updated_at: string;
 };
 export const goalToRow = (g: Goal, userId: string): GoalRow => ({
-  id: g.id, user_id: userId, title: g.title, description: s(g.description),
+  id: U(g.id), user_id: userId, title: g.title, description: s(g.description),
   category: s(g.category), deadline: s(g.deadline), archived: g.archived,
   created_at: g.createdAt, updated_at: g.updatedAt,
 });
@@ -74,7 +97,7 @@ export type MilestoneRow = {
   target_date: string | null; completed_at: string | null; created_at: string;
 };
 export const milestoneToRow = (m: Milestone, userId: string): MilestoneRow => ({
-  id: m.id, goal_id: m.goalId, user_id: userId, title: m.title,
+  id: U(m.id), goal_id: U(m.goalId), user_id: userId, title: m.title,
   target_date: s(m.targetDate), completed_at: s(m.completedAt), created_at: m.createdAt,
 });
 export const milestoneFromRow = (r: MilestoneRow): Milestone => ({
@@ -92,10 +115,12 @@ export type TaskRow = {
   created_at: string; updated_at: string;
 };
 export const taskToRow = (t: Task, userId: string): TaskRow => ({
-  id: t.id, user_id: userId, title: t.title, description: s(t.description),
+  id: U(t.id), user_id: userId, title: t.title, description: s(t.description),
   status: t.status, priority: t.priority, due_date: s(t.dueDate), due_time: s(t.dueTime),
-  estimated_duration_minutes: s(t.estimatedDurationMinutes), project_id: s(t.projectId),
-  goal_id: s(t.goalId), tag_ids: t.tagIds, repeat: s(t.repeat), mit: t.mit ?? false,
+  estimated_duration_minutes: s(t.estimatedDurationMinutes),
+  project_id: t.projectId ? U(t.projectId) : null,
+  goal_id: t.goalId ? U(t.goalId) : null,
+  tag_ids: uuidArray(t.tagIds), repeat: s(t.repeat), mit: t.mit ?? false,
   completed_at: s(t.completedAt), created_at: t.createdAt, updated_at: t.updatedAt,
 });
 export const taskFromRow = (r: TaskRow, subtasks: Subtask[] = []): Task => ({
@@ -112,8 +137,8 @@ export type SubtaskRow = {
   completed: boolean; position: number; created_at: string;
 };
 /** No user_id column — ownership inherits through the parent task. */
-export const subtaskToRow = (st: Subtask): Omit<SubtaskRow, "never"> => ({
-  id: st.id, task_id: st.taskId, title: st.title,
+export const subtaskToRow = (st: Subtask): SubtaskRow => ({
+  id: U(st.id), task_id: U(st.taskId), title: st.title,
   completed: st.completed, position: st.order, created_at: st.createdAt,
 });
 export const subtaskFromRow = (r: SubtaskRow): Subtask => ({
@@ -127,7 +152,7 @@ export type OverrideRow = {
   done: boolean; skipped: boolean; completed_at: string | null;
 };
 export const overrideToRow = (templateId: string, dateKey: string, o: OccurrenceOverride, userId: string): OverrideRow => ({
-  template_task_id: templateId, user_id: userId, date_key: dateKey,
+  template_task_id: U(templateId), user_id: userId, date_key: dateKey,
   done: o.done ?? false, skipped: o.skipped ?? false, completed_at: s(o.completedAt),
 });
 export const overrideFromRow = (r: OverrideRow): OccurrenceOverride => ({
@@ -143,8 +168,9 @@ export type EventRow = {
   created_at: string;
 };
 export const eventToRow = (e: CalendarEvent, userId: string): EventRow => ({
-  id: e.id, user_id: userId, title: e.title, description: s(e.description),
-  start_at: e.startAt, end_at: e.endAt, all_day: e.allDay, task_id: s(e.taskId),
+  id: U(e.id), user_id: userId, title: e.title, description: s(e.description),
+  start_at: e.startAt, end_at: e.endAt, all_day: e.allDay,
+  task_id: e.taskId ? U(e.taskId) : null,
   repeat: s(e.repeat), category: s(e.category) ?? "general", created_at: e.createdAt,
 });
 export const eventFromRow = (r: EventRow): CalendarEvent => ({
@@ -159,7 +185,7 @@ export type HabitRow = {
   schedule: Habit["schedule"]; weekdays: number[] | null; archived: boolean; created_at: string;
 };
 export const habitToRow = (h: Habit, userId: string): HabitRow => ({
-  id: h.id, user_id: userId, name: h.name, description: s(h.description),
+  id: U(h.id), user_id: userId, name: h.name, description: s(h.description),
   schedule: h.schedule, weekdays: s(h.weekdays), archived: h.archived, created_at: h.createdAt,
 });
 export const habitFromRow = (r: HabitRow): Habit => ({
@@ -171,7 +197,7 @@ export type HabitLogRow = {
   id: string; user_id: string | null; habit_id: string; completed_on: string; created_at: string;
 };
 export const habitLogToRow = (l: HabitLog, userId: string): HabitLogRow => ({
-  id: l.id, user_id: userId, habit_id: l.habitId,
+  id: U(l.id), user_id: userId, habit_id: U(l.habitId),
   completed_on: l.completedOn.slice(0, 10), created_at: l.createdAt,
 });
 export const habitLogFromRow = (r: HabitLogRow): HabitLog => ({
@@ -185,7 +211,7 @@ export type GraceRow = {
   reason: string; note: string | null; created_at: string;
 };
 export const graceToRow = (g: HabitGraceLog, userId: string): GraceRow => ({
-  id: g.id, user_id: userId, habit_id: g.habitId, date_key: g.dateKey,
+  id: U(g.id), user_id: userId, habit_id: U(g.habitId), date_key: g.dateKey,
   reason: g.reason, note: s(g.note), created_at: g.createdAt,
 });
 export const graceFromRow = (r: GraceRow): HabitGraceLog => ({
@@ -203,9 +229,12 @@ export type ActivityRow = {
   created_at: string;
 };
 export const activityToRow = (a: Activity, userId: string): ActivityRow => ({
-  id: a.id, user_id: userId, title: a.title, task_id: s(a.taskId),
-  project_id: s(a.projectId), category: s(a.category),
-  study_subject_id: s(a.studySubjectId), study_topic_id: s(a.studyTopicId),
+  id: U(a.id), user_id: userId, title: a.title,
+  task_id: a.taskId ? U(a.taskId) : null,
+  project_id: a.projectId ? U(a.projectId) : null,
+  category: s(a.category),
+  study_subject_id: a.studySubjectId ? U(a.studySubjectId) : null,
+  study_topic_id: a.studyTopicId ? U(a.studyTopicId) : null,
   started_at: a.startedAt, ended_at: s(a.endedAt), paused_at: s(a.pausedAt),
   total_paused_ms: a.totalPausedMs, duration_minutes: s(a.durationMinutes),
   notes: s(a.notes), created_at: a.createdAt,
@@ -224,7 +253,7 @@ export type SubjectRow = {
   color: string | null; archived: boolean; created_at: string;
 };
 export const subjectToRow = (s_: StudySubject, userId: string): SubjectRow => ({
-  id: s_.id, user_id: userId, name: s_.name, description: s(s_.description),
+  id: U(s_.id), user_id: userId, name: s_.name, description: s(s_.description),
   color: s(s_.color), archived: s_.archived, created_at: s_.createdAt,
 });
 export const subjectFromRow = (r: SubjectRow): StudySubject => ({
@@ -237,7 +266,7 @@ export type TopicRow = {
   name: string; status: StudyTopic["status"]; last_revised_at: string | null; created_at: string;
 };
 export const topicToRow = (t: StudyTopic, userId: string): TopicRow => ({
-  id: t.id, user_id: userId, subject_id: t.subjectId, parent_id: s(t.parentId),
+  id: U(t.id), user_id: userId, subject_id: U(t.subjectId), parent_id: t.parentId ? U(t.parentId) : null,
   name: t.name, status: t.status, last_revised_at: s(t.lastRevisedAt), created_at: t.createdAt,
 });
 export const topicFromRow = (r: TopicRow): StudyTopic => ({
@@ -251,7 +280,7 @@ export type SessionRow = {
   notes: string | null; created_at: string;
 };
 export const sessionToRow = (s_: StudySession, userId: string): SessionRow => ({
-  id: s_.id, user_id: userId, subject_id: s_.subjectId, topic_id: s(s_.topicId),
+  id: U(s_.id), user_id: userId, subject_id: U(s_.subjectId), topic_id: s_.topicId ? U(s_.topicId) : null,
   type: s_.type, date: s_.date, duration_minutes: s_.durationMinutes,
   notes: s(s_.notes), created_at: s_.createdAt,
 });
@@ -268,10 +297,12 @@ export type NoteRow = {
   linked_study_topic_id: string | null; created_at: string; updated_at: string;
 };
 export const noteToRow = (n: Note, userId: string): NoteRow => ({
-  id: n.id, user_id: userId, title: n.title, content: n.content,
-  folder: s(n.folder), pinned: n.pinned ?? false, tag_ids: n.tagIds,
-  linked_task_ids: n.linkedTaskIds, linked_project_ids: n.linkedProjectIds,
-  linked_study_topic_id: s(n.linkedStudyTopicId), created_at: n.createdAt, updated_at: n.updatedAt,
+  id: U(n.id), user_id: userId, title: n.title, content: n.content,
+  folder: s(n.folder), pinned: n.pinned ?? false, tag_ids: uuidArray(n.tagIds),
+  linked_task_ids: uuidArray(n.linkedTaskIds),
+  linked_project_ids: uuidArray(n.linkedProjectIds),
+  linked_study_topic_id: n.linkedStudyTopicId ? U(n.linkedStudyTopicId) : null,
+  created_at: n.createdAt, updated_at: n.updatedAt,
 });
 export const noteFromRow = (r: NoteRow): Note => ({
   id: r.id, title: r.title, content: r.content, folder: u(r.folder),
@@ -288,7 +319,7 @@ export type ReviewRow = {
   tomorrow_priority: string | null; created_at: string;
 };
 export const reviewToRow = (r: DailyReview, userId: string): ReviewRow => ({
-  id: r.id, user_id: userId, date: r.date.slice(0, 10),
+  id: U(r.id), user_id: userId, date: r.date.slice(0, 10),
   tasks_completed_count: r.tasksCompletedCount, focus_minutes: r.focusMinutes,
   study_minutes: r.studyMinutes, went_well: s(r.wentWell), went_wrong: s(r.wentWrong),
   to_improve: s(r.toImprove), tomorrow_priority: s(r.tomorrowPriority), created_at: r.createdAt,
@@ -307,7 +338,7 @@ export type RescheduleRow = {
   note: string | null; created_at: string;
 };
 export const rescheduleToRow = (r: RescheduleLog, userId: string): RescheduleRow => ({
-  id: r.id, user_id: userId, item_id: r.itemId, item_type: r.itemType,
+  id: U(r.id), user_id: userId, item_id: U(r.itemId), item_type: r.itemType,
   title: r.title, from_start: r.fromStart, to_start: r.toStart,
   reason: r.reason, note: s(r.note), created_at: r.createdAt,
 });
@@ -325,10 +356,14 @@ export type AttachmentRow = {
   tag_ids: string[]; uploaded_at: string;
 };
 export const attachmentToRow = (a: Attachment, userId: string): AttachmentRow => ({
-  id: a.id, user_id: userId, name: a.name, ext: a.ext, mime: a.mime,
-  size_bytes: a.sizeBytes, kind: a.kind, note_id: s(a.noteId), task_id: s(a.taskId),
-  project_id: s(a.projectId), study_subject_id: s(a.studySubjectId),
-  study_topic_id: s(a.studyTopicId), tag_ids: a.tagIds, uploaded_at: a.uploadedAt,
+  id: U(a.id), user_id: userId, name: a.name, ext: a.ext, mime: a.mime,
+  size_bytes: a.sizeBytes, kind: a.kind,
+  note_id: a.noteId ? U(a.noteId) : null,
+  task_id: a.taskId ? U(a.taskId) : null,
+  project_id: a.projectId ? U(a.projectId) : null,
+  study_subject_id: a.studySubjectId ? U(a.studySubjectId) : null,
+  study_topic_id: a.studyTopicId ? U(a.studyTopicId) : null,
+  tag_ids: uuidArray(a.tagIds), uploaded_at: a.uploadedAt,
 });
 export const attachmentFromRow = (r: AttachmentRow): Attachment => ({
   id: r.id, name: r.name, ext: r.ext, mime: r.mime, sizeBytes: Number(r.size_bytes ?? 0),

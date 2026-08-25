@@ -251,7 +251,7 @@ function StatTile({ label, value, hint }: { label: string; value: string; hint?:
     <Card className="py-4">
       <CardContent className="px-4">
         <p className="text-muted-foreground text-xs">{label}</p>
-        <p className="mt-1 text-xl font-bold tabular-nums">{value}</p>
+        <p className="mt-1 text-xl font-bold tabular-nums" suppressHydrationWarning>{value}</p>
         {hint && <p className="text-muted-foreground mt-1 text-xs">{hint}</p>}
       </CardContent>
     </Card>

@@ -148,7 +148,7 @@ export function SuggestionsPanel() {
   if (candidates.length === 0 || suggestions.length === 0) return null;
 
   return (
-    <section className="rounded-xl border border-dashed p-4">
+    <section suppressHydrationWarning className="rounded-xl border border-dashed p-4">
       <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold">
         <Sparkles className="size-4 text-primary" aria-hidden />
         Suggestions

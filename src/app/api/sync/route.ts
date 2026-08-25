@@ -9,7 +9,7 @@ import {
   projectFromRow, projectToRow, rescheduleFromRow, rescheduleToRow,
   reviewFromRow, reviewToRow, sessionFromRow, sessionToRow, subjectFromRow,
   subjectToRow, subtaskFromRow, subtaskToRow, tagFromRow, tagToRow,
-  taskFromRow, taskToRow, topicFromRow, topicToRow,
+  taskFromRow, taskToRow, toUuid, topicFromRow, topicToRow,
 } from "@/services/backend/mappers";
 import {
   emptySyncPayload,
@@ -196,7 +196,7 @@ export async function POST(request: Request) {
     );
     await syncTable("subtasks", subtaskRows, "id", {
       column: "task_id",
-      ids: payload.tasks.map((t) => t.id),
+      ids: payload.tasks.map((t) => toUuid(t.id)),
     });
 
     // Occurrence overrides: composite key (template_task_id, date_key).

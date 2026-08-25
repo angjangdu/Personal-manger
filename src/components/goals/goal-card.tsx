@@ -105,7 +105,7 @@ export function GoalCard({ goal, onEdit }: GoalCardProps) {
 
       <Progress value={percent} aria-label={`${goal.title} progress`} />
 
-      <p className="text-muted-foreground mt-2.5 flex items-center justify-between text-xs">
+      <p suppressHydrationWarning className="text-muted-foreground mt-2.5 flex items-center justify-between text-xs">
         <span className="inline-flex items-center gap-3 tabular-nums">
           {percent}%
           <span className="inline-flex items-center gap-1">
