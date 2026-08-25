@@ -208,6 +208,8 @@ export interface UserSettings {
   sleepEnd: string;
   /** Report section ids hidden by the user (customizable report). */
   hiddenReportSections?: string[];
+  /** Last time the notification panel was opened. */
+  lastNotificationsRead?: string;
 }
 
 /** Excused habit miss — doesn't break streaks (review §13 grace flow). */
