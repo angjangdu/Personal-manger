@@ -83,6 +83,16 @@ alter table projects drop constraint if exists projects_goal_id_fkey;
 alter table projects
   add constraint projects_goal_id_fkey foreign key (goal_id) references goals(id) on delete set null;
 
+create table if not exists milestones (
+  id           uuid primary key,
+  user_id      uuid references auth.users(id) on delete cascade,
+  goal_id      uuid not null references goals(id) on delete cascade,
+  title        text not null,
+  target_date  timestamptz,
+  completed_at timestamptz,
+  created_at   timestamptz not null default now()
+);
+
 -- ── tasks ───────────────────────────────────────────────────────────────────
 create table if not exists tasks (
   id                          uuid primary key,
@@ -121,6 +131,7 @@ create table if not exists subtasks (
 -- ── occurrence overrides (recurring series) ─────────────────────────────────
 create table if not exists occurrence_overrides (
   template_task_id uuid not null references tasks(id) on delete cascade,
+  user_id          uuid references auth.users(id) on delete cascade,
   date_key         date not null,
   done             boolean not null default false,
   skipped          boolean not null default false,

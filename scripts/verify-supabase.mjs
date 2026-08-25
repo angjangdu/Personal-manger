@@ -23,10 +23,10 @@ if (!url || !serviceKey) {
 const sb = createClient(url, serviceKey, { auth: { persistSession: false } });
 
 const EXPECTED = [
-  "tags", "projects", "goals", "tasks", "subtasks", "occurrence_overrides",
-  "calendar_events", "habits", "habit_logs", "habit_grace_logs", "activities",
-  "study_subjects", "study_topics", "study_sessions", "notes",
-  "daily_reviews", "reschedule_logs", "attachments",
+  "tags", "projects", "goals", "milestones", "tasks", "subtasks",
+  "occurrence_overrides", "calendar_events", "habits", "habit_logs",
+  "habit_grace_logs", "activities", "study_subjects", "study_topics",
+  "study_sessions", "notes", "daily_reviews", "reschedule_logs", "attachments",
 ];
 
 let failures = 0;

@@ -23,6 +23,11 @@ import type {
 } from "@/types";
 import { parseVirtualId } from "@/lib/recurrence";
 import {
+  pullRemote,
+  remoteSyncEnabled,
+  scheduleRemotePush,
+} from "@/services/backend/sync";
+import {
   mockActivities,
   mockCalendarEvents,
   mockGoals,
@@ -219,6 +224,32 @@ class AppStore {
   hydrate() {
     this.state = loadState();
     this.emit();
+    // Phase 22/23: when the Supabase data source is on, the local snapshot
+    // acts as an offline cache — remote is pulled over it, and every
+    // subsequent mutation pushes back (debounced). Safety: an entirely
+    // empty remote never wipes populated local data — it seeds instead.
+    if (remoteSyncEnabled()) {
+      void (async () => {
+        const remote = await pullRemote();
+        if (!remote) return;
+        const remoteEmpty = Object.values(remote).every(
+          (value) => !value || (Array.isArray(value) && value.length === 0) || (typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === 0)
+        );
+        if (remoteEmpty) {
+          const localHasData =
+            this.state.tasks.length > 0 ||
+            this.state.projects.length > 0 ||
+            this.state.notes.length > 0 ||
+            this.state.activities.length > 0;
+          if (localHasData) {
+            scheduleRemotePush(() => this.state);
+            return;
+          }
+        }
+        this.state = { ...loadState(), ...remote } as AppState;
+        this.emit();
+      })();
+    }
   }
 
   getState = (): AppState => this.state;
@@ -233,6 +264,7 @@ class AppStore {
   private emit() {
     persist(this.state);
     for (const listener of this.listeners) listener();
+    scheduleRemotePush(() => this.state);
   }
 
   private set(mutator: (state: AppState) => AppState) {
