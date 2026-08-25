@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { getSupabaseServerClient } from "@/lib/supabase/client";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { validateSyncPayload } from "@/services/backend/validate";
 import {
   activityFromRow, activityToRow, attachmentFromRow, attachmentToRow,
   eventFromRow, eventToRow, goalFromRow, goalToRow, graceFromRow, graceToRow,
@@ -32,10 +34,17 @@ function unauthorized() {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
-function checkSecret(request: Request): boolean {
+/** Constant-time comparison (length leak avoided via hashing). */
+function secretMatches(candidate: string | null): boolean {
   const secret = process.env.SYNC_SECRET;
-  if (!secret) return false; // not configured → refuse writes/reads
-  return request.headers.get("x-sync-secret") === secret;
+  if (!secret || candidate === null) return false;
+  const a = createHash("sha256").update(candidate).digest();
+  const b = createHash("sha256").update(secret).digest();
+  return timingSafeEqual(a, b);
+}
+
+function checkSecret(request: Request): boolean {
+  return secretMatches(request.headers.get("x-sync-secret"));
 }
 
 async function ensureOwnerId(sb: NonNullable<ReturnType<typeof getSupabaseServerClient>>): Promise<string> {
@@ -57,6 +66,13 @@ async function ensureOwnerId(sb: NonNullable<ReturnType<typeof getSupabaseServer
 }
 
 export async function GET(request: Request) {
+  const ip = clientIp(request);
+  if (!rateLimit(`sync:${ip}`)) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "retry-after": "60" } }
+    );
+  }
   if (!checkSecret(request)) return unauthorized();
   const sb = getSupabaseServerClient();
   if (!sb) return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
@@ -126,13 +142,31 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const ip = clientIp(request);
+  if (!rateLimit(`sync:${ip}`)) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "retry-after": "60" } }
+    );
+  }
   if (!checkSecret(request)) return unauthorized();
   const sb = getSupabaseServerClient();
   if (!sb) return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
 
+  let raw: unknown;
+  try {
+    raw = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  const validation = validateSyncPayload(raw);
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.error }, { status: 400 });
+  }
+  const payload = raw as SyncPayload;
+
   try {
     const ownerId = await ensureOwnerId(sb);
-    const payload = (await request.json()) as SyncPayload;
     const counts: Record<string, number> = {};
     const db = sb;
 
