@@ -7,6 +7,7 @@ import { allNav } from "@/components/layout/nav-config";
 import { GlobalSearchDialog } from "@/components/search/global-search-dialog";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { UserMenu } from "@/components/layout/user-menu";
+import { OfflineBadge } from "@/components/pwa/offline-badge";
 
 export function AppHeader() {
   const pathname = usePathname();
@@ -19,6 +20,7 @@ export function AppHeader() {
       <SidebarTrigger aria-label="Toggle sidebar" />
       <Separator orientation="vertical" className="!h-5" />
       <span className="text-sm font-medium">{current?.title ?? "Personal OS"}</span>
+      <OfflineBadge />
       <div className="ml-auto flex items-center gap-2">
         <GlobalSearchDialog />
         <NotificationBell />

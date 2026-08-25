@@ -1,17 +1,21 @@
 ﻿"use client";
 
-import { useTheme } from "@/components/theme-provider";
-import { Download, BedDouble, Moon, RotateCcw, Sun } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import {
+  BookOpen,
+  Download,
+  ListTodo,
+  Pencil,
+  Plus,
+  Search,
+  Zap,
+} from "lucide-react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -20,171 +24,173 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { appStore, STORAGE_KEY } from "@/services/app-store";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { NoteEditorDialog } from "@/components/notes/note-editor-dialog";
+import { QuickCaptureDialog } from "@/components/notes/quick-capture-dialog";
 import { useAppState } from "@/hooks/use-app-state";
-
-const THEME_OPTIONS = [
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
-  { value: "system", label: "System" },
-] as const;
+import { searchNotes } from "@/lib/note-utils";
+import type { Note } from "@/types";
 
 export default function SettingsPage() {
-  const { theme, setTheme } = useTheme();
   const state = useAppState();
+  const [query, setQuery] = useState("");
+  const [tagFilter, setTagFilter] = useState("");
+  const [folderFilter, setFolderFilter] = useState("");
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editing, setEditing] = useState<Note | undefined>(undefined);
+  const [captureOpen, setCaptureOpen] = useState(false);
 
-  function exportData() {
-    const data = JSON.stringify(appStore.getState(), null, 2);
-    const blob = new Blob([data], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `personal-os-export-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast("Data exported", { description: "A JSON snapshot of everything was downloaded." });
-  }
-
-  function resetData() {
-    const confirmed = window.confirm(
-      "Reset all data to the demo seed? Everything you created will be permanently removed. Export first if you want a copy."
-    );
-    if (!confirmed) return;
-    window.localStorage.removeItem(STORAGE_KEY);
-    window.location.reload();
-  }
+  // React Compiler auto-memoizes this from its inputs.
+  const visible = searchNotes(state.notes, query)
+    .filter((note) => !tagFilter || note.tagIds.includes(tagFilter))
+    .filter((note) => !folderFilter || (note.folder ?? "") === folderFilter)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 
   return (
     <>
-      <PageHeader title="Settings" description="Appearance and your local data." />
+      <PageHeader title="Settings" description={`${state.notes.length} notes across your workspace`}>
+        <Button onClick={() => { setEditing(undefined); setEditorOpen(true); }}>
+          <Plus aria-hidden /> New note
+        </Button>
+      </PageHeader>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Appearance</CardTitle>
-            <CardDescription>
-              Theme applies instantly and follows your system by default.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* suppressHydrationWarning: theme is only known on the client */}
-            <div className="flex items-center justify-between gap-3" suppressHydrationWarning>
-              <div className="flex min-w-0 items-center gap-2 text-sm">
-                {theme === "dark" ? (
-                  <Moon className="size-4 shrink-0" aria-hidden />
-                ) : (
-                  <Sun className="size-4 shrink-0" aria-hidden />
-                )}
-                Theme
-                <span className="text-muted-foreground text-xs capitalize">
-                  ({theme ?? "system"})
-                </span>
-              </div>
-              <Select value={theme ?? "system"} onValueChange={setTheme}>
-                <SelectTrigger className="w-[130px]" aria-label="Theme">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {THEME_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Separator className="my-4" />
-
-            <div className="space-y-3">
-              <p className="text-sm font-medium">Sleep schedule</p>
-              <p className="text-muted-foreground text-xs">
-                Free-time calculations exclude your sleep hours (review §4).
-              </p>
-              <div className="flex flex-wrap items-center gap-3" suppressHydrationWarning>
-                <BedDouble className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                <label className="flex items-center gap-2 text-sm">
-                  Sleep at
-                  <Input
-                    type="time"
-                    value={state.settings.sleepStart}
-                    onChange={(e) => appStore.updateSettings({ sleepStart: e.target.value })}
-                    className="w-[110px]"
-                  />
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  Wake at
-                  <Input
-                    type="time"
-                    value={state.settings.sleepEnd}
-                    onChange={(e) => appStore.updateSettings({ sleepEnd: e.target.value })}
-                    className="w-[110px]"
-                  />
-                </label>
-              </div>
-            </div>
-
-            <Separator className="my-4" />
-
-            <p className="text-muted-foreground text-xs">
-              More personalization arrives with later iterations.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Your data</CardTitle>
-            <CardDescription>
-              Everything lives in this browser (localStorage) until the backend
-              phase. Export regularly.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-sm font-medium">Export</p>
-                <p className="text-muted-foreground text-xs">
-                  Download a JSON snapshot of all tasks, projects, goals,
-                  activities, study data, notes, and reviews.
-                </p>
-              </div>
-              <Button variant="outline" onClick={exportData}>
-                <Download aria-hidden /> Export JSON
-              </Button>
-            </div>
-
-            <Separator />
-
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-destructive text-sm font-medium">Reset demo data</p>
-                <p className="text-muted-foreground text-xs">
-                  Wipes this browser&apos;s data and restores the original demo seed.
-                </p>
-              </div>
-              <Button variant="destructive" onClick={resetData}>
-                <RotateCcw aria-hidden /> Reset
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">About</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm">
-            <p className="font-medium">Personal OS</p>
-            <p className="text-muted-foreground mt-1 text-xs">
-              Frontend demo · Plan → Schedule → Execute → Track → Review → Learn.
-              Full documentation lives in{" "}
-              <code className="bg-muted rounded px-1 py-0.5 text-[11px]">docs/</code>.
-            </p>
-          </CardContent>
-        </Card>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative min-w-0 flex-1 sm:max-w-sm">
+          <Search
+            className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
+            aria-hidden
+          />
+          <Input
+            type="search"
+            placeholder="Search title and content…"
+            className="pl-8"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Search notes"
+          />
+        </div>
+        <Select value={tagFilter || "all"} onValueChange={(v) => setTagFilter(v === "all" ? "" : v)}>
+          <SelectTrigger className="w-[140px]" aria-label="Filter by tag">
+            <SelectValue placeholder="All tags" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All tags</SelectItem>
+            {state.tags.map((tag) => (
+              <SelectItem key={tag.id} value={tag.id}>
+                {tag.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <span className="text-muted-foreground ml-auto text-xs tabular-nums" role="status">
+          {visible.length} shown
+        </span>
       </div>
+
+      {visible.length === 0 ? (
+        <Empty className="rounded-lg border border-dashed">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <BookOpen aria-hidden />
+            </EmptyMedia>
+            <EmptyTitle>
+              {state.notes.length === 0 ? "No notes yet" : "No matches"}
+            </EmptyTitle>
+            <EmptyDescription>
+              {state.notes.length === 0
+                ? "Capture knowledge in markdown and link it to tasks, projects, and study topics."
+                : "Try a different search or tag filter."}
+            </EmptyDescription>
+          </EmptyHeader>
+          {state.notes.length === 0 && (
+            <EmptyContent>
+              <Button onClick={() => { setEditing(undefined); setEditorOpen(true); }}>
+                <Plus aria-hidden /> Create note
+              </Button>
+            </EmptyContent>
+          )}
+        </Empty>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {visible.map((note) => (
+            <NoteCard key={note.id} note={note} onOpen={() => { setEditing(note); setEditorOpen(true); }} />
+          ))}
+        </div>
+      )}
+
+      <NoteEditorDialog open={editorOpen} onOpenChange={setEditorOpen} note={editing} />
+      <QuickCaptureDialog open={captureOpen} onOpenChange={setCaptureOpen} />
     </>
+  );
+}
+
+function NoteCard({ note, onOpen }: { note: Note; onOpen: () => void }) {
+  const state = useAppState();
+  const tasks = state.tasks.filter((t) => note.linkedTaskIds.includes(t.id));
+  const projects = state.projects.filter((p) => note.linkedProjectIds.includes(p.id));
+  const topic = state.studyTopics.find((t) => t.id === note.linkedStudyTopicId);
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="group hover:border-primary/40 flex h-full flex-col rounded-xl border p-4 text-left transition-colors"
+    >
+      <h3 className="truncate text-sm font-semibold">{note.title || "Untitled"}</h3>
+
+      <div className="prose prose-sm dark:prose-invert mt-1 line-clamp-4 max-w-none text-xs opacity-80 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+        <Markdown remarkPlugins={[remarkGfm]}>
+          {note.content.split("\n").slice(0, 8).join("\n")}
+        </Markdown>
+      </div>
+
+      <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 pt-3 text-[11px]">
+        {tasks.slice(0, 2).map((task) => (
+          <Link
+            key={task.id}
+            href="/tasks"
+            onClick={(e) => e.stopPropagation()}
+            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+          >
+            <ListTodo className="size-3" aria-hidden />
+            <span className="max-w-[120px] truncate">{task.title}</span>
+          </Link>
+        ))}
+        {projects.map((project) => (
+          <Link
+            key={project.id}
+            href={`/projects/${project.id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+          >
+            <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: project.color ?? "var(--primary)" }} aria-hidden />
+            <span className="max-w-[110px] truncate">{project.name}</span>
+          </Link>
+        ))}
+        {topic && (
+          <Link
+            href={`/study/${topic.subjectId}`}
+            onClick={(e) => e.stopPropagation()}
+            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+          >
+            <BookOpen className="size-3" aria-hidden />
+            <span className="max-w-[120px] truncate">{topic.name}</span>
+          </Link>
+        )}
+        <span className="text-muted-foreground ml-auto tabular-nums">
+          {new Date(note.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+        </span>
+      </div>
+
+      <div className="mt-2 flex flex-wrap gap-1">
+        {state.tags
+          .filter((tag) => note.tagIds.includes(tag.id))
+          .map((tag) => (
+            <span key={tag.id} className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-medium">
+              {tag.name}
+            </span>
+          ))}
+      </div>
+    </button>
   );
 }

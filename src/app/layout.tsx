@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { PwaRegister } from "@/components/pwa/pwa-register";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -23,6 +24,22 @@ export const metadata: Metadata = {
   },
   description:
     "One connected workspace for goals, projects, tasks, activities, and analytics.",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/favicon-32.png",
+    apple: "/icons/apple-touch-180.png",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "Personal OS",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#6366f1",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -48,6 +65,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <TooltipProvider>{children}</TooltipProvider>
           <Toaster />
         </ThemeProvider>
+        <PwaRegister />
       </body>
     </html>
   );
