@@ -20,9 +20,9 @@ Plan → Prioritize → Execute → Track → Review → Improve
 
 ## Status
 
-**Phase 0 — Project Setup** complete. See [`docs/05_DEVELOPMENT_PLAN.md`](docs/05_DEVELOPMENT_PLAN.md) for the full roadmap.
+**Frontend freeze (`frontend-freeze-v1`)** — the full user-review improvement cycle is complete: recurring work, calendar time-blocking with move-reasons, free-time calculation, schedule suggestions, activity categories + manual sessions, planned-vs-actual, project/goal health, habit grace flow, study syllabus tracking, reports, global search (⌘K), and a notification center. See [`docs/FREEZE.md`](docs/FREEZE.md).
 
-Current phase: frontend-first development with mock/local data. Authentication, backend, admin, and AI are deliberately later phases.
+Current phase: **UX testing**, then backend integration. Authentication/admin remain outside this cycle.
 
 ## Getting Started
 
