@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getSupabaseServerClient } from "@/lib/supabase/client";
 
 /**
  * Session refresh + route protection (Phase 25). Next 16 proxy convention.
@@ -48,6 +49,30 @@ export async function proxy(request: NextRequest) {
     const redirect = request.nextUrl.clone();
     redirect.pathname = "/dashboard";
     return NextResponse.redirect(redirect);
+  }
+
+  // Phase 26: disabled accounts are signed out immediately.
+  if (user && !isApi) {
+    const admin = getSupabaseServerClient();
+    if (admin) {
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("disabled")
+        .eq("id", user.id)
+        .single();
+      if (profile?.disabled) {
+        const redirect = request.nextUrl.clone();
+        redirect.pathname = "/login";
+        redirect.search = "disabled=1";
+        const redirectResponse = NextResponse.redirect(redirect);
+        for (const cookie of request.cookies.getAll()) {
+          if (cookie.name.includes("auth-token")) {
+            redirectResponse.cookies.delete(cookie.name);
+          }
+        }
+        return redirectResponse;
+      }
+    }
   }
   return response;
 }

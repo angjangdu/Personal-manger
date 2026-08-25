@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { getSupabaseServerClient } from "@/lib/supabase/client";
 import { getSessionUserId } from "@/lib/supabase/server";
+import { getProfile } from "@/services/backend/admin";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { validateSyncPayload } from "@/services/backend/validate";
 import {
@@ -80,6 +81,14 @@ export async function GET(request: Request) {
   const sessionUserId = await getSessionUserId();
   const secretOk = checkSecret(request);
   if (!sessionUserId && !secretOk) return unauthorized();
+
+  // Phase 26: disabled accounts cannot sync.
+  if (sessionUserId) {
+    const profile = await getProfile();
+    if (profile?.disabled) {
+      return NextResponse.json({ error: "Account disabled" }, { status: 403 });
+    }
+  }
   const sb = getSupabaseServerClient();
   if (!sb) return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
 
@@ -175,6 +184,14 @@ export async function POST(request: Request) {
   if (!sessionUserId && !secretOk) return unauthorized();
   const sb = getSupabaseServerClient();
   if (!sb) return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
+
+  // Phase 26: disabled accounts cannot sync.
+  if (sessionUserId) {
+    const profile = await getProfile();
+    if (profile?.disabled) {
+      return NextResponse.json({ error: "Account disabled" }, { status: 403 });
+    }
+  }
 
   let raw: unknown;
   try {

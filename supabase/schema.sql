@@ -357,3 +357,46 @@ create policy "attachments own read" on storage.objects
   for select using (bucket_id = 'attachments' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy "attachments own write" on storage.objects
   for insert with check (bucket_id = 'attachments' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ============================================================================
+-- Phase 26: profiles, roles, audit log (see migrations/0002_admin.sql)
+-- ============================================================================
+create table if not exists profiles (
+  id         uuid primary key references auth.users(id) on delete cascade,
+  email      text not null,
+  role       text not null default 'user' check (role in ('admin','user')),
+  disabled   boolean not null default false,
+  created_at timestamptz not null default now()
+);
+alter table profiles enable row level security;
+drop policy if exists "own profile select" on profiles;
+create policy "own profile select" on profiles for select using (id = auth.uid());
+
+create or replace function handle_new_user() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.profiles (id, email) values (new.id, coalesce(new.email, ''));
+  return new;
+end;
+$$;
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function handle_new_user();
+
+insert into profiles (id, email)
+select u.id, coalesce(u.email, '')
+from auth.users u
+where not exists (select 1 from profiles p where p.id = u.id)
+on conflict (id) do nothing;
+
+create table if not exists audit_logs (
+  id         uuid primary key default gen_random_uuid(),
+  actor_id   uuid references auth.users(id) on delete set null,
+  action     text not null,
+  target_id  uuid,
+  meta       jsonb,
+  created_at timestamptz not null default now()
+);
+alter table audit_logs enable row level security;
+create index if not exists idx_audit_created on audit_logs(created_at desc);

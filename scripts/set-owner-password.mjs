@@ -45,6 +45,7 @@ if (existing) {
     console.error("❌ update:", error.message);
     process.exit(1);
   }
+  await claimAdminProfile(url, serviceKey, existing.id, email);
   console.log(`✅ Password set for ${email} (${existing.id})`);
 } else {
   const { data, error } = await sb.auth.admin.createUser({
@@ -56,6 +57,17 @@ if (existing) {
     console.error("❌ create:", error?.message ?? "no user");
     process.exit(1);
   }
+  await claimAdminProfile(url, serviceKey, data.user.id, email);
   console.log(`✅ Owner account created: ${email} (${data.user.id})`);
 }
 console.log("→ Sign in at /login with these credentials.");
+
+/** Phase 26: the owner is the first admin — profile claims the role. */
+async function claimAdminProfile(url, serviceKey, id, email) {
+  const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+  const { error } = await admin
+    .from("profiles")
+    .upsert({ id, email, role: "admin", disabled: false });
+  if (error) console.error("⚠ profile upsert:", error.message);
+  else console.log("   profile: role=admin, enabled");
+}

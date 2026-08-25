@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, User } from "lucide-react";
+import { LogOut, ShieldCheck, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,22 +15,26 @@ import {
 import { getSupabaseAuthBrowserClient } from "@/lib/supabase/browser";
 import { DATA_SOURCE } from "@/lib/supabase/client";
 
-/** Signed-in identity + sign out (Phase 25). Hidden in local mode. */
+interface SessionInfo {
+  email: string;
+  isAdmin: boolean;
+}
+
+/** Signed-in identity, admin link, sign out (Phase 25/26). Hidden in local mode. */
 export function UserMenu() {
   const router = useRouter();
-  const [email, setEmail] = useState<string | null>(null);
+  const [session, setSession] = useState<SessionInfo | null>(null);
 
   useEffect(() => {
     if (DATA_SOURCE !== "supabase") return;
-    const sb = getSupabaseAuthBrowserClient();
-    if (!sb) return;
     void (async () => {
-      const { data } = await sb.auth.getUser();
-      setEmail(data.user?.email ?? null);
+      const response = await fetch("/api/admin/session");
+      if (!response.ok) return;
+      setSession(await response.json());
     })();
   }, []);
 
-  if (DATA_SOURCE !== "supabase" || !email) return null;
+  if (DATA_SOURCE !== "supabase" || !session) return null;
 
   async function signOut() {
     const sb = getSupabaseAuthBrowserClient();
@@ -47,8 +51,13 @@ export function UserMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel className="truncate">{email}</DropdownMenuLabel>
+        <DropdownMenuLabel className="truncate">{session.email}</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {session.isAdmin && (
+          <DropdownMenuItem onClick={() => router.push("/admin")}>
+            <ShieldCheck aria-hidden /> Admin dashboard
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={() => void signOut()}>
           <LogOut aria-hidden /> Sign out
         </DropdownMenuItem>
