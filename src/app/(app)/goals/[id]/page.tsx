@@ -13,8 +13,11 @@ import {
   Pencil,
   Plus,
   Target,
+  Trash2,
   X,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,6 +43,7 @@ import type { Task } from "@/types";
 
 export default function GoalDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const state = useAppState();
   const now = useNow(60000);
 
@@ -123,6 +127,19 @@ export default function GoalDetailPage() {
         </Badge>
         <Button variant="outline" size="sm" onClick={() => setGoalDialogOpen(true)}>
           <Pencil aria-hidden /> Edit
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-destructive hover:text-destructive"
+          onClick={() => {
+            if (!window.confirm(`Delete goal "${goal.title}"? Its projects and tasks will be kept.`)) return;
+            appStore.deleteGoal(goal.id);
+            toast("Goal deleted");
+            router.push("/goals");
+          }}
+        >
+          <Trash2 aria-hidden /> Delete
         </Button>
       </PageHeader>
 

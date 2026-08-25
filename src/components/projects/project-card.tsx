@@ -69,7 +69,7 @@ export function ProjectCard({ project, counts, onEdit }: ProjectCardProps) {
               variant="ghost"
               size="icon-sm"
               aria-label={`Actions for ${project.name}`}
-              className="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
+              className="relative z-10 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 data-[state=open]:opacity-100"
             >
               <MoreHorizontal aria-hidden />
             </Button>
@@ -141,7 +141,7 @@ export function ProjectCard({ project, counts, onEdit }: ProjectCardProps) {
       {!project.archived && (
         <Link
           href={`/projects/${project.id}`}
-          className="absolute inset-0"
+          className="absolute inset-0 z-0"
           aria-label={`Open ${project.name}`}
         />
       )}

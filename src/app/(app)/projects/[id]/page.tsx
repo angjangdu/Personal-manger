@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   Activity as ActivityIcon,
@@ -12,7 +12,10 @@ import {
   Plus,
   Target,
   Timer,
+  Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
+import { appStore } from "@/services/app-store";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,6 +39,7 @@ import type { Task } from "@/types";
 
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const state = useAppState();
   // Minute tick is plenty for day-level countdowns.
   const now = useNow(60000);
@@ -112,6 +116,19 @@ export default function ProjectDetailPage() {
           onClick={() => setProjectDialogOpen(true)}
         >
           <Pencil aria-hidden /> Edit
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-destructive hover:text-destructive"
+          onClick={() => {
+            if (!window.confirm(`Delete project "${project.name}"? Its tasks will be kept.`)) return;
+            appStore.deleteProject(project.id);
+            toast("Project deleted");
+            router.push("/projects");
+          }}
+        >
+          <Trash2 aria-hidden /> Delete
         </Button>
         <Button onClick={() => { setEditingTask(undefined); setTaskDialogOpen(true); }}>
           <Plus aria-hidden /> Add task

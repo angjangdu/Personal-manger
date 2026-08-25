@@ -64,7 +64,7 @@ export function GoalCard({ goal, onEdit }: GoalCardProps) {
               variant="ghost"
               size="icon-sm"
               aria-label={`Actions for ${goal.title}`}
-              className="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
+              className="relative z-10 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 data-[state=open]:opacity-100"
             >
               <MoreHorizontal aria-hidden />
             </Button>
@@ -123,7 +123,7 @@ export function GoalCard({ goal, onEdit }: GoalCardProps) {
       </p>
 
       {!goal.archived && (
-        <Link href={`/goals/${goal.id}`} className="absolute inset-0" aria-label={`Open ${goal.title}`} />
+        <Link href={`/goals/${goal.id}`} className="absolute inset-0 z-0" aria-label={`Open ${goal.title}`} />
       )}
     </div>
   );
