@@ -5,6 +5,7 @@ import {
   Calendar,
   CalendarClock,
   ClipboardCheck,
+  FileBarChart,
   FolderKanban,
   LayoutDashboard,
   ListTodo,
@@ -37,6 +38,7 @@ export const secondaryNav: NavItem[] = [
   { title: "Study", href: "/study", icon: BookOpen },
   { title: "Notes", href: "/notes", icon: Notebook },
   { title: "Analytics", href: "/analytics", icon: BarChart3 },
+  { title: "Reports", href: "/reports", icon: FileBarChart },
   { title: "Settings", href: "/settings", icon: Settings },
 ];
 

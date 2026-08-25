@@ -206,6 +206,8 @@ export interface UserSettings {
   sleepStart: string;
   /** "HH:MM" — when the user wakes up. */
   sleepEnd: string;
+  /** Report section ids hidden by the user (customizable report). */
+  hiddenReportSections?: string[];
 }
 
 /** Excused habit miss — doesn't break streaks (review §13 grace flow). */
