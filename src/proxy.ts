@@ -51,13 +51,14 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(redirect);
   }
 
-  // Phase 26: disabled accounts are signed out immediately.
+  // Phase 26/27: disabled accounts are signed out; non-admins cannot open
+  // /admin — enforced here AND in every admin API route.
   if (user && !isApi) {
     const admin = getSupabaseServerClient();
     if (admin) {
       const { data: profile } = await admin
         .from("profiles")
-        .select("disabled")
+        .select("disabled, role")
         .eq("id", user.id)
         .single();
       if (profile?.disabled) {
@@ -71,6 +72,13 @@ export async function proxy(request: NextRequest) {
           }
         }
         return redirectResponse;
+      }
+      const isAdminRoute =
+        path === "/admin" || path.startsWith("/admin/");
+      if (isAdminRoute && profile?.role !== "admin") {
+        const redirect = request.nextUrl.clone();
+        redirect.pathname = "/dashboard";
+        return NextResponse.redirect(redirect);
       }
     }
   }
