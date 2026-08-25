@@ -6,6 +6,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { allNav } from "@/components/layout/nav-config";
 import { GlobalSearchDialog } from "@/components/search/global-search-dialog";
 import { NotificationBell } from "@/components/layout/notification-bell";
+import { UserMenu } from "@/components/layout/user-menu";
 
 export function AppHeader() {
   const pathname = usePathname();
@@ -21,6 +22,7 @@ export function AppHeader() {
       <div className="ml-auto flex items-center gap-2">
         <GlobalSearchDialog />
         <NotificationBell />
+        <UserMenu />
       </div>
     </header>
   );

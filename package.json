@@ -8,9 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "verify:supabase": "node scripts/verify-supabase.mjs",
-    "push:local": "node scripts/push-export.mjs"
+    "push:local": "node scripts/push-export.mjs","set:owner": "node scripts/set-owner-password.mjs"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2.112.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

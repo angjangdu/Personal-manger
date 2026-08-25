@@ -49,6 +49,18 @@ can use the service-role client to seed/migrate meanwhile.
 | Per-entity adapters + live sync loop | ⏳ Phase 23 — mechanical: copy the tasks pattern per table, then flip `DATA_SOURCE` |
 | Auth / profiles / admin | ⏳ Phases 25–27 |
 
+## 3b. Claim your login (Phase 25)
+
+Auth is live and there is **no public signup**. Set the owner password:
+
+\\\powershell
+npm run set:owner -- you@example.com YourStrongPassword
+\\\
+
+Then sign in at \/login\. Unauthenticated visits redirect there; the sync
+route accepts the session cookie (RLS-scoped to your user) or the script
+secret.
+
 ## Migration of local data
 
 Settings → Export JSON gives you the full local store. Phase 23 will add a

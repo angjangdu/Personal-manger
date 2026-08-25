@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { getSupabaseServerClient } from "@/lib/supabase/client";
+import { getSessionUserId } from "@/lib/supabase/server";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { validateSyncPayload } from "@/services/backend/validate";
 import {
@@ -73,36 +74,54 @@ export async function GET(request: Request) {
       { status: 429, headers: { "retry-after": "60" } }
     );
   }
-  if (!checkSecret(request)) return unauthorized();
+
+  // Phase 25: session-first. A signed-in user reads/writes ONLY their own
+  // rows. The SYNC_SECRET path remains for server scripts (owner account).
+  const sessionUserId = await getSessionUserId();
+  const secretOk = checkSecret(request);
+  if (!sessionUserId && !secretOk) return unauthorized();
   const sb = getSupabaseServerClient();
   if (!sb) return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
 
   try {
+    const ownerId = sessionUserId ?? (await ensureOwnerId(sb));
+    // Owner-scoped reads: a session user must only ever see their own rows.
+    const own = (table: string) => sb.from(table).select("*").eq("user_id", ownerId);
+
+    const { data: taskRows, error: tasksError } = await own("tasks");
+    if (tasksError) throw new Error(tasksError.message);
+    const taskIds = (taskRows ?? []).map((t) => t.id);
+
+    const subtasksQuery =
+      taskIds.length > 0
+        ? sb.from("subtasks").select("*").in("task_id", taskIds)
+        : sb.from("subtasks").select("*").limit(0);
+
     const [
-      tags, projects, goals, tasks, subtasks, milestones, overrides,
+      tags, projects, goals, milestones, overrides,
       events, habits, habitLogs, graceLogs, activities, subjects, topics,
-      sessions, notes, reviews, reschedules, attachments,
+      sessions, notes, reviews, reschedules, attachments, subtasks,
     ] = await Promise.all([
-      sb.from("tags").select("*"),
-      sb.from("projects").select("*"),
-      sb.from("goals").select("*"),
-      sb.from("tasks").select("*"),
-      sb.from("subtasks").select("*"),
-      sb.from("milestones").select("*"),
-      sb.from("occurrence_overrides").select("*"),
-      sb.from("calendar_events").select("*"),
-      sb.from("habits").select("*"),
-      sb.from("habit_logs").select("*"),
-      sb.from("habit_grace_logs").select("*"),
-      sb.from("activities").select("*"),
-      sb.from("study_subjects").select("*"),
-      sb.from("study_topics").select("*"),
-      sb.from("study_sessions").select("*"),
-      sb.from("notes").select("*"),
-      sb.from("daily_reviews").select("*"),
-      sb.from("reschedule_logs").select("*"),
-      sb.from("attachments").select("*"),
+      own("tags"),
+      own("projects"),
+      own("goals"),
+      own("milestones"),
+      sb.from("occurrence_overrides").select("*").eq("user_id", ownerId),
+      own("calendar_events"),
+      own("habits"),
+      own("habit_logs"),
+      own("habit_grace_logs"),
+      own("activities"),
+      own("study_subjects"),
+      own("study_topics"),
+      own("study_sessions"),
+      own("notes"),
+      own("daily_reviews"),
+      own("reschedule_logs"),
+      own("attachments"),
+      subtasksQuery,
     ]);
+    const tasks = { data: taskRows, error: null };
 
     const firstError = [tags, projects, goals, tasks, subtasks, milestones, overrides, events, habits, habitLogs, graceLogs, activities, subjects, topics, sessions, notes, reviews, reschedules, attachments]
       .find((r) => r.error)?.error;
@@ -149,7 +168,11 @@ export async function POST(request: Request) {
       { status: 429, headers: { "retry-after": "60" } }
     );
   }
-  if (!checkSecret(request)) return unauthorized();
+
+  // Session-first (see GET). Writes are forced to the caller's own user_id.
+  const sessionUserId = await getSessionUserId();
+  const secretOk = checkSecret(request);
+  if (!sessionUserId && !secretOk) return unauthorized();
   const sb = getSupabaseServerClient();
   if (!sb) return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
 
@@ -166,7 +189,7 @@ export async function POST(request: Request) {
   const payload = raw as SyncPayload;
 
   try {
-    const ownerId = await ensureOwnerId(sb);
+    const ownerId = sessionUserId ?? (await ensureOwnerId(sb));
     const counts: Record<string, number> = {};
     const db = sb;
 

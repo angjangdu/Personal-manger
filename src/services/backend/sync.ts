@@ -11,11 +11,9 @@ import type { SyncPayload } from "@/services/backend/sync-types";
 const PUSH_DEBOUNCE_MS = 2500;
 
 export function remoteSyncEnabled(): boolean {
-  return (
-    DATA_SOURCE === "supabase" &&
-    typeof process.env.NEXT_PUBLIC_SYNC_SECRET === "string" &&
-    process.env.NEXT_PUBLIC_SYNC_SECRET.length > 0
-  );
+  // Phase 25: the session cookie authorizes the call; the shared secret
+  // (if configured) remains as a script/dev fallback header.
+  return DATA_SOURCE === "supabase";
 }
 
 function headers(): HeadersInit {
