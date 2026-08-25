@@ -214,8 +214,8 @@ export default function ActivitiesPage() {
                       <span className="text-muted-foreground block truncate text-xs tabular-nums">
                         {new Date(activity.startedAt).toLocaleDateString("en-GB", { month: "short", day: "numeric" })}
                         {" · "}
-                        {new Date(activity.startedAt).toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit" })}
-                        –{activity.endedAt ? new Date(activity.endedAt).toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit" }) : ""}
+                        {new Date(activity.startedAt).toLocaleTimeString("en-GB", { hour: "2-digit", hour12: false, minute: "2-digit" })}
+                        –{activity.endedAt ? new Date(activity.endedAt).toLocaleTimeString("en-GB", { hour: "2-digit", hour12: false, minute: "2-digit" }) : ""}
                         {project ? ` · ${project.name}` : ""}
                         {activity.category ? ` · ${categoryLabel(activity.category)}` : ""}
                       </span>
@@ -309,8 +309,8 @@ function TimelineHistory({
                     )}
                   </span>
                   <span className="text-muted-foreground block text-xs tabular-nums">
-                    {new Date(activity.startedAt).toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit" })}
-                    –{activity.endedAt ? new Date(activity.endedAt).toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit" }) : ""}
+                    {new Date(activity.startedAt).toLocaleTimeString("en-GB", { hour: "2-digit", hour12: false, minute: "2-digit" })}
+                    –{activity.endedAt ? new Date(activity.endedAt).toLocaleTimeString("en-GB", { hour: "2-digit", hour12: false, minute: "2-digit" }) : ""}
                     {" · "}
                     {formatMinutes(activity.durationMinutes ?? 0)}
                   </span>

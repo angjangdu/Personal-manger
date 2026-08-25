@@ -68,7 +68,7 @@ export function ActivityDetailDialog({
               {start.toLocaleString(undefined, {
                 month: "short",
                 day: "numeric",
-                hour: "numeric",
+                hour: "2-digit", hour12: false,
                 minute: "2-digit",
               })}
             </dd>
@@ -80,7 +80,7 @@ export function ActivityDetailDialog({
                 ? end.toLocaleString(undefined, {
                     month: "short",
                     day: "numeric",
-                    hour: "numeric",
+                    hour: "2-digit", hour12: false,
                     minute: "2-digit",
                   })
                 : "Running"}

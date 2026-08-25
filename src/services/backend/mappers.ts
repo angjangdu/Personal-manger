@@ -67,7 +67,7 @@ export type ProjectRow = {
 export const projectToRow = (p: Project, userId: string): ProjectRow => ({
   id: U(p.id), user_id: userId, name: p.name, description: s(p.description),
   color: s(p.color), goal_id: p.goalId ? U(p.goalId) : null, deadline: s(p.deadline),
-  status: s(p.status), archived: p.archived, created_at: p.createdAt, updated_at: p.updatedAt,
+  status: p.status ?? "active", archived: p.archived, created_at: p.createdAt, updated_at: p.updatedAt,
 });
 export const projectFromRow = (r: ProjectRow): Project => ({
   id: r.id, name: r.name, description: u(r.description), color: u(r.color),

@@ -81,12 +81,12 @@ export function AgendaView({ items, rangeStart, days, onItemClick }: AgendaViewP
                     </span>
                     <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
                       {new Date(item.startMs).toLocaleTimeString("en-GB", {
-                        hour: "numeric",
+                        hour: "2-digit", hour12: false,
                         minute: "2-digit",
                       })}
                       {item.kind !== "task" &&
                         ` – ${new Date(item.endMs).toLocaleTimeString("en-GB", {
-                          hour: "numeric",
+                          hour: "2-digit", hour12: false,
                           minute: "2-digit",
                         })}`}
                     </span>

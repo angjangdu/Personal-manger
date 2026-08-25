@@ -71,7 +71,7 @@ export function globalSearch(
         subtitle: new Date(event.startAt).toLocaleString(undefined, {
           month: "short",
           day: "numeric",
-          hour: "numeric",
+          hour: "2-digit", hour12: false,
           minute: "2-digit",
         }),
         href: "/calendar",

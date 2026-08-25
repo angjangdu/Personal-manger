@@ -20,7 +20,7 @@ export function isSameDay(a: Date, b: Date): boolean {
 
 export function formatTime(date: Date): string {
   return date.toLocaleTimeString("en-GB", {
-    hour: "numeric",
+    hour: "2-digit", hour12: false,
     minute: "2-digit",
   });
 }

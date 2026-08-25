@@ -66,7 +66,7 @@ export function DayBriefCard() {
                 <span className="text-muted-foreground block truncate text-xs font-normal" suppressHydrationWarning>
                   next: {nextEvent.title} ·{" "}
                   {new Date(nextEvent.startMs).toLocaleTimeString("en-GB", {
-                    hour: "numeric",
+                    hour: "2-digit", hour12: false,
                     minute: "2-digit",
                   })}
                 </span>
@@ -112,7 +112,7 @@ export function DayBriefCard() {
                 from{" "}
                 {new Date(dayStart.getTime() + model.nextFreeGap.startMin * 60000).toLocaleTimeString(
                   undefined,
-                  { hour: "numeric", minute: "2-digit" }
+                  { hour: "2-digit", hour12: false, minute: "2-digit" }
                 )}
               </p>
             ) : null}
