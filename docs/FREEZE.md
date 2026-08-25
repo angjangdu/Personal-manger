@@ -30,7 +30,7 @@ Open app → Day Brief answers the 3 morning questions → suggestions accept in
 
 ## Known limitations (accepted for freeze)
 
-1. Notes attachments need backend storage.
+1. ~~Notes attachments need backend storage.~~ **Superseded (owner-approved unfreeze):** local-first attachments shipped — metadata in the store, blobs in IndexedDB (`services/file-store.ts`, `/files` hub + note editor). Cloud sync lands with the backend.
 2. Recurring occurrences move as a series (single-occurrence moves = future).
 3. Monthly recurrence skips dates that don't exist (e.g. Jan 31).
 4. Habit grace quota is fixed at "excused misses don't break streaks"; configurable quotas are P2.

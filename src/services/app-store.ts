@@ -1,5 +1,6 @@
 import type {
   Activity,
+  Attachment,
   CalendarEvent,
   DailyReview,
   Goal,
@@ -68,6 +69,8 @@ export interface AppState {
   settings: UserSettings;
   /** Excused habit misses. */
   habitGraceLogs: HabitGraceLog[];
+  /** Uploaded file metadata (blobs live in IndexedDB). */
+  attachments: Attachment[];
 }
 
 export interface TaskInput {
@@ -182,6 +185,7 @@ function seedState(): AppState {
     rescheduleLogs: [],
     settings: { sleepStart: "23:00", sleepEnd: "07:00" },
     habitGraceLogs: [],
+    attachments: [],
   };
 }
 
@@ -688,6 +692,40 @@ class AppStore {
       habitGraceLogs: s.habitGraceLogs.filter((log) => log.id !== id),
     }));
   }
+
+  // ── Attachments ──────────────────────────────────────────────────────────
+  // Metadata only — the binary blob must be written to IndexedDB (via
+  // services/file-store.ts) under the same id before calling addAttachment.
+
+  addAttachment(attachment: Omit<Attachment, "uploadedAt"> & { uploadedAt?: string }) {
+    const entry: Attachment = {
+      ...attachment,
+      uploadedAt: attachment.uploadedAt ?? new Date().toISOString(),
+    };
+    this.set((s) => ({ ...s, attachments: [entry, ...s.attachments] }));
+    return entry;
+  }
+
+  updateAttachmentLinks(
+    id: string,
+    links: Partial<Pick<Attachment, "noteId" | "taskId" | "projectId" | "studySubjectId" | "studyTopicId">>
+  ) {
+    this.set((s) => ({
+      ...s,
+      attachments: s.attachments.map((attachment) =>
+        attachment.id === id ? { ...attachment, ...links } : attachment
+      ),
+    }));
+  }
+
+  /** Removes metadata; callers must also delete the IndexedDB blob. */
+  deleteAttachment(id: string) {
+    this.set((s) => ({
+      ...s,
+      attachments: s.attachments.filter((attachment) => attachment.id !== id),
+    }));
+  }
+
   // (section)
   // Durations are always computed from timestamps, never trusted from a
 //   client timer (architecture doc section 9).

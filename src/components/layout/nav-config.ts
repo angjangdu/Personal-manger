@@ -13,6 +13,7 @@ import {
   Repeat,
   Settings,
   Target,
+  FolderUp,
   type LucideIcon,
 } from "lucide-react";
 
@@ -37,6 +38,7 @@ export const secondaryNav: NavItem[] = [
   { title: "Habits", href: "/habits", icon: Repeat },
   { title: "Study", href: "/study", icon: BookOpen },
   { title: "Notes", href: "/notes", icon: Notebook },
+  { title: "Files", href: "/files", icon: FolderUp },
   { title: "Analytics", href: "/analytics", icon: BarChart3 },
   { title: "Reports", href: "/reports", icon: FileBarChart },
   { title: "Settings", href: "/settings", icon: Settings },

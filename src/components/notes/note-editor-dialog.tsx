@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Check, ChevronDown, Trash2 } from "lucide-react";
+import { Check, ChevronDown, Paperclip, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +32,15 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { appStore, type NoteInput } from "@/services/app-store";
 import { useAppState } from "@/hooks/use-app-state";
+import {
+  deleteFileBlob,
+  putFileBlob,
+} from "@/services/file-store";
+import {
+  detectFileKind,
+  formatBytes,
+  MAX_FILE_BYTES,
+} from "@/lib/file-utils";
 import type { Note } from "@/types";
 
 interface NoteEditorDialogProps {
@@ -59,6 +68,47 @@ function NoteEditorFields({ note, onClose }: { note?: Note; onClose: () => void 
   const [taskIds, setTaskIds] = useState<string[]>(note?.linkedTaskIds ?? []);
   const [projectIds, setProjectIds] = useState<string[]>(note?.linkedProjectIds ?? []);
   const [topicId, setTopicId] = useState(note?.linkedStudyTopicId ?? "");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const noteAttachments = useMemo(
+    () => state.attachments.filter((a) => a.noteId === note?.id),
+    [state.attachments, note?.id]
+  );
+
+  async function handleAttach(files: FileList | null) {
+    if (!files || files.length === 0 || !note) return;
+    setUploading(true);
+    for (const file of Array.from(files)) {
+      if (file.size > MAX_FILE_BYTES) {
+        toast(`${file.name} is too large`, { description: "Max 50 MB per file." });
+        continue;
+      }
+      const id = crypto.randomUUID();
+      try {
+        await putFileBlob(id, file);
+        appStore.addAttachment({
+          id,
+          name: file.name,
+          ext: file.name.includes(".") ? file.name.split(".").pop()!.toLowerCase() : "",
+          mime: file.type || "application/octet-stream",
+          sizeBytes: file.size,
+          kind: detectFileKind(file.name, file.type),
+          noteId: note.id,
+        });
+      } catch {
+        toast(`Could not store ${file.name}`);
+      }
+    }
+    setUploading(false);
+    toast("Attached");
+  }
+
+  async function detach(attachmentId: string, name: string) {
+    await deleteFileBlob(attachmentId);
+    appStore.deleteAttachment(attachmentId);
+    toast(`Removed ${name}`);
+  }
 
   const activeTasks = state.tasks.filter((t) => t.status !== "cancelled");
 
@@ -264,6 +314,62 @@ function NoteEditorFields({ note, onClose }: { note?: Note; onClose: () => void 
           <p className="text-muted-foreground text-xs">
             Linked to: {linkedSummary || "nothing yet"}
           </p>
+
+          {note ? (
+            <div className="space-y-2 rounded-lg border p-3">
+              <div className="flex items-center justify-between">
+                <p className="flex items-center gap-1.5 text-sm font-medium">
+                  <Paperclip className="size-3.5" aria-hidden /> Attachments
+                </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  hidden
+                  onChange={(e) => {
+                    void handleAttach(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={uploading}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {uploading ? "Uploading…" : "Add file"}
+                </Button>
+              </div>
+              <ul className="space-y-1">
+                {noteAttachments.map((attachment) => (
+                  <li
+                    key={attachment.id}
+                    className="group flex items-center gap-2 text-sm"
+                  >
+                    <Paperclip className="text-muted-foreground size-3.5 shrink-0" aria-hidden />
+                    <span className="min-w-0 flex-1 truncate">{attachment.name}</span>
+                    <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
+                      {formatBytes(attachment.sizeBytes)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void detach(attachment.id, attachment.name)}
+                      aria-label={`Remove ${attachment.name}`}
+                      className="text-muted-foreground hover:text-destructive shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </li>
+                ))}
+                {noteAttachments.length === 0 && (
+                  <li className="text-muted-foreground py-1 text-xs">
+                    No files attached yet.
+                  </li>
+                )}
+              </ul>
+            </div>
+          ) : null}
 
           <DialogFooter className={note ? "justify-between sm:justify-between" : ""}>
             {note ? (

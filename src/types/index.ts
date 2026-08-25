@@ -227,6 +227,32 @@ export interface HabitGraceLog {
   createdAt: string;
 }
 
+// ── Attachments ────────────────────────────────────────────────────────────
+// Metadata lives in the store; binary blobs live in IndexedDB keyed by id.
+
+export type FileKind =
+  | "pdf"
+  | "document"
+  | "sheet"
+  | "presentation"
+  | "image"
+  | "other";
+
+export interface Attachment {
+  id: string;
+  name: string;
+  ext: string;
+  mime: string;
+  sizeBytes: number;
+  kind: FileKind;
+  noteId?: string;
+  taskId?: string;
+  projectId?: string;
+  studySubjectId?: string;
+  studyTopicId?: string;
+  uploadedAt: string;
+}
+
 export interface Tag {
   id: string;
   name: string;
