@@ -9,8 +9,6 @@ import type { SyncPayload } from "@/services/backend/sync-types";
 const MAX_BODY_CHARS = 10 * 1024 * 1024; // 10 MB of JSON
 const MAX_ROWS_PER_ENTITY = 5_000;
 const MAX_STRING = 100_000; // note bodies
-const MAX_ID = 64;
-const MAX_ARRAY = 500;
 
 const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 const DATE_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
