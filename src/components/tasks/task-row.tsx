@@ -43,7 +43,7 @@ interface TaskRowProps {
   onEdit: (task: Task) => void;
 }
 
-function TaskRowInner({ task, onEdit }: TaskRowProps) {
+export const TaskRow = memo(function TaskRow({ task, onEdit }: TaskRowProps) {
   const state = useAppState();
   const nowMs = useNow(60000);
   const project = useMemo(() => state.projects.find((p) => p.id === task.projectId), [state.projects, task.projectId]);
@@ -226,6 +226,4 @@ function TaskRowInner({ task, onEdit }: TaskRowProps) {
       )}
     </li>
   );
-}
-
-export const TaskRow = memo(TaskRowInner);
+});
