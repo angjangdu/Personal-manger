@@ -250,6 +250,7 @@ export interface Attachment {
   projectId?: string;
   studySubjectId?: string;
   studyTopicId?: string;
+  tagIds: string[];
   uploadedAt: string;
 }
 

@@ -35,6 +35,11 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { SubjectFormDialog } from "@/components/study/subject-form-dialog";
 import { LogSessionDialog } from "@/components/study/log-session-dialog";
+import { UploadButton } from "@/components/files/upload-button";
+import {
+  AttachmentList,
+  attachmentsFor,
+} from "@/components/files/attachment-list";
 import { appStore } from "@/services/app-store";
 import { useAppState } from "@/hooks/use-app-state";
 import { useNow } from "@/hooks/use-now";
@@ -376,6 +381,24 @@ export default function SubjectDetailPage() {
             <Plus aria-hidden /> Add unit
           </Button>
         </div>
+      </section>
+
+      {/* Files */}
+      <section className="mb-8">
+        <h3 className="mb-2 flex items-center justify-between text-sm font-semibold">
+          <span>Files</span>
+          <UploadButton links={{ studySubjectId: subject.id }} label="Add files" />
+        </h3>
+        {attachmentsFor(state, { studySubjectId: subject.id }).length === 0 ? (
+          <p className="text-muted-foreground rounded-xl border border-dashed px-4 py-4 text-center text-sm">
+            Lecture slides, past papers, lab sheets — keep everything for this
+            subject together.
+          </p>
+        ) : (
+          <AttachmentList
+            attachments={attachmentsFor(state, { studySubjectId: subject.id })}
+          />
+        )}
       </section>
 
       {/* Sessions */}

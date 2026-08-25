@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   BookOpen,
   ListTodo,
+  Paperclip,
   Pin,
   Plus,
   Search,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { attachmentsFor } from "@/components/files/attachment-list";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -155,6 +157,7 @@ function NoteCard({ note, onOpen }: { note: Note; onOpen: () => void }) {
   const tasks = state.tasks.filter((t) => note.linkedTaskIds.includes(t.id));
   const projects = state.projects.filter((p) => note.linkedProjectIds.includes(p.id));
   const topic = state.studyTopics.find((t) => t.id === note.linkedStudyTopicId);
+  const fileCount = attachmentsFor(state, { noteId: note.id }).length;
 
   return (
     <button
@@ -174,6 +177,12 @@ function NoteCard({ note, onOpen }: { note: Note; onOpen: () => void }) {
         </span>
       )}
       <h3 className="truncate pr-6 text-sm font-semibold">{note.title || "Untitled"}</h3>
+
+      {fileCount > 0 && (
+        <span className="text-muted-foreground absolute right-3 top-9 flex items-center gap-1 text-[10px] tabular-nums">
+          <Paperclip className="size-3" aria-hidden /> {fileCount}
+        </span>
+      )}
 
       <div className="prose prose-sm dark:prose-invert mt-1 line-clamp-4 max-w-none text-xs opacity-80 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
         <Markdown remarkPlugins={[remarkGfm]}>

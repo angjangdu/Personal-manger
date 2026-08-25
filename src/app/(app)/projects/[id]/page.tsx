@@ -21,6 +21,11 @@ import { Progress } from "@/components/ui/progress";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { TaskFormDialog } from "@/components/tasks/task-form-dialog";
 import { TaskRow } from "@/components/tasks/task-row";
+import { UploadButton } from "@/components/files/upload-button";
+import {
+  AttachmentList,
+  attachmentsFor,
+} from "@/components/files/attachment-list";
 import { ProjectFormDialog } from "@/components/projects/project-form-dialog";
 import { useAppState } from "@/hooks/use-app-state";
 import { useNow } from "@/hooks/use-now";
@@ -220,6 +225,23 @@ export default function ProjectDetailPage() {
               </li>
             ))}
           </ul>
+        )}
+      </section>
+
+      <section>
+        <h3 className="mb-2 flex items-center justify-between text-sm font-semibold">
+          <span>Files</span>
+          <UploadButton links={{ projectId: project.id }} label="Add files" />
+        </h3>
+        {attachmentsFor(state, { projectId: project.id }).length === 0 ? (
+          <p className="text-muted-foreground rounded-xl border border-dashed px-4 py-4 text-center text-sm">
+            No files attached to this project yet — upload assignment PDFs,
+            spreadsheets or reference images.
+          </p>
+        ) : (
+          <AttachmentList
+            attachments={attachmentsFor(state, { projectId: project.id })}
+          />
         )}
       </section>
 

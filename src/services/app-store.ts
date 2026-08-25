@@ -697,6 +697,23 @@ class AppStore {
   // Metadata only — the binary blob must be written to IndexedDB (via
   // services/file-store.ts) under the same id before calling addAttachment.
 
+  addTag(name: string): Tag {
+    const trimmed = name.trim();
+    if (!trimmed) throw new Error("Tag name required");
+    const existing = this.state.tags.find(
+      (tag) => tag.name.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (existing) return existing;
+    const palette = ["#6366f1", "#8b5cf6", "#ec4899", "#ef4444", "#f59e0b", "#10b981", "#06b6d4", "#64748b"];
+    const tag: Tag = {
+      id: crypto.randomUUID(),
+      name: trimmed,
+      color: palette[this.state.tags.length % palette.length],
+    };
+    this.set((s) => ({ ...s, tags: [...s.tags, tag] }));
+    return tag;
+  }
+
   addAttachment(attachment: Omit<Attachment, "uploadedAt"> & { uploadedAt?: string }) {
     const entry: Attachment = {
       ...attachment,
@@ -708,7 +725,7 @@ class AppStore {
 
   updateAttachmentLinks(
     id: string,
-    links: Partial<Pick<Attachment, "noteId" | "taskId" | "projectId" | "studySubjectId" | "studyTopicId">>
+    links: Partial<Pick<Attachment, "noteId" | "taskId" | "projectId" | "studySubjectId" | "studyTopicId" | "tagIds">>
   ) {
     this.set((s) => ({
       ...s,

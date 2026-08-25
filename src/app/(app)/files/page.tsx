@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { appStore } from "@/services/app-store";
+import { TagPickerDialog } from "@/components/shared/tag-picker-dialog";
 import { useAppState } from "@/hooks/use-app-state";
 import { deleteFileBlob, getFileBlob, putFileBlob } from "@/services/file-store";
 import {
@@ -41,16 +42,20 @@ import {
   formatBytes,
   MAX_FILE_BYTES,
 } from "@/lib/file-utils";
+import { cn } from "@/lib/utils";
 
 export default function FilesPage() {
   const state = useAppState();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [kindFilter, setKindFilter] = useState("all");
+  const [tagFilterIds, setTagFilterIds] = useState<string[]>([]);
+  const [tagPickerId, setTagPickerId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const files = state.attachments
     .filter((a) => !kindFilter || a.kind === kindFilter)
+    .filter((a) => tagFilterIds.every((id) => a.tagIds.includes(id)))
     .filter((a) => a.name.toLowerCase().includes(query.trim().toLowerCase()))
     .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
 
@@ -75,6 +80,7 @@ export default function FilesPage() {
           mime: file.type || "application/octet-stream",
           sizeBytes: file.size,
           kind: detectFileKind(file.name, file.type),
+          tagIds: [],
         });
         added++;
       } catch {
@@ -164,6 +170,11 @@ export default function FilesPage() {
             ))}
           </SelectContent>
         </Select>
+        <TagButtonFilter
+          selected={tagFilterIds}
+          onChange={setTagFilterIds}
+          activeCount={tagFilterIds.length}
+        />
         <span className="text-muted-foreground ml-auto text-xs tabular-nums" role="status">
           {files.length} shown
         </span>
@@ -222,6 +233,15 @@ export default function FilesPage() {
                 <Badge variant="outline" className={meta.className}>
                   {file.ext.toUpperCase() || meta.label}
                 </Badge>
+                <FileTagChips tagIds={file.tagIds} />
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Tag ${file.name}`}
+                  onClick={() => setTagPickerId(file.id)}
+                >
+                  <TagsIcon aria-hidden />
+                </Button>
                 <div className="flex shrink-0 gap-1">
                   <Button
                     variant="ghost"
@@ -254,6 +274,16 @@ export default function FilesPage() {
           })}
         </ul>
       )}
+
+      <TagPickerDialog
+        open={Boolean(tagPickerId)}
+        onOpenChange={(o) => !o && setTagPickerId(null)}
+        selected={state.attachments.find((a) => a.id === tagPickerId)?.tagIds ?? []}
+        onChange={(tagIds) =>
+          tagPickerId && appStore.updateAttachmentLinks(tagPickerId, { tagIds })
+        }
+        heading="File tags"
+      />
     </>
   );
 }
@@ -269,4 +299,76 @@ function KindGlyph({ kind }: { kind: keyof typeof FILE_KIND_META }) {
     default:
       return <FileText className="size-4" />;
   }
+}
+
+function FileTagChips({ tagIds }: { tagIds: string[] }) {
+  const state = useAppState();
+  if (tagIds.length === 0) return null;
+  return (
+    <span className="hidden shrink-0 gap-1 lg:flex">
+      {state.tags
+        .filter((tag) => tagIds.includes(tag.id))
+        .map((tag) => (
+          <span key={tag.id} className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-medium">
+            {tag.name}
+          </span>
+        ))}
+    </span>
+  );
+}
+
+function TagsIcon() {
+  return <TagsGlyph aria-hidden />;
+}
+
+function TagsGlyph(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-3.5" {...props}>
+      <path d="m15 5 6.3 6.3a2.4 2.4 0 0 1 0 3.4L17 19" />
+      <path d="M9.586 5.586A2 2 0 0 0 8.172 5H3a1 1 0 0 0-1 1v5.172a2 2 0 0 0 .586 1.414L8.29 18.29a2.426 2.426 0 0 0 3.42 0l3.58-3.58a2.426 2.426 0 0 0 0-3.42z" />
+      <circle cx="6.5" cy="9.5" r=".5" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Filter button that opens the shared tag picker (selection = filter). */
+function TagButtonFilter({
+  selected,
+  onChange,
+  activeCount,
+}: {
+  selected: string[];
+  onChange: (ids: string[]) => void;
+  activeCount: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const state = useAppState();
+  const names = state.tags
+    .filter((t) => selected.includes(t.id))
+    .map((t) => t.name)
+    .join(", ");
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={cn(
+          "inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors",
+          activeCount > 0
+            ? "border-primary/50 bg-primary/10 text-foreground"
+            : "text-muted-foreground hover:bg-accent hover:text-foreground"
+        )}
+      >
+        <TagsGlyph /> Tag filter {activeCount > 0 ? `(${activeCount})` : ""}
+        {names && <span className="hidden max-w-[160px] truncate md:inline">· {names}</span>}
+      </button>
+      <TagPickerDialog
+        open={open}
+        onOpenChange={setOpen}
+        selected={selected}
+        onChange={onChange}
+        heading="Filter files by tags"
+      />
+    </>
+  );
 }
