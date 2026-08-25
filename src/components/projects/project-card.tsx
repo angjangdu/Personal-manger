@@ -13,7 +13,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
 import { appStore } from "@/services/app-store";
+import { useAppState } from "@/hooks/use-app-state";
 import { useNow } from "@/hooks/use-now";
+import {
+  attachmentsFor,
+} from "@/components/files/attachment-list";
+import { Paperclip } from "lucide-react";
 import { projectDeadlineHealth, PROJECT_STATUS_LABELS } from "@/lib/health-utils";
 import type { Project } from "@/types";
 import { cn } from "@/lib/utils";
@@ -25,8 +30,10 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, counts, onEdit }: ProjectCardProps) {
+  const state = useAppState();
   // Minute tick is plenty for day-level countdowns.
   const now = useNow(60000);
+  const fileCount = attachmentsFor(state, { projectId: project.id }).length;
   const percent =
     counts.total > 0 ? Math.round((counts.completed / counts.total) * 100) : 0;
   const health = projectDeadlineHealth(project, percent, now);
@@ -106,6 +113,12 @@ export function ProjectCard({ project, counts, onEdit }: ProjectCardProps) {
       <p className="text-muted-foreground mt-2.5 flex items-center justify-between text-xs">
         <span className="tabular-nums">
           {counts.completed}/{counts.total} tasks · {percent}%
+          {fileCount > 0 && (
+            <span className="ml-2 inline-flex items-center gap-1">
+              <Paperclip className="size-3" aria-hidden />
+              {fileCount}
+            </span>
+          )}
         </span>
         {health?.state !== "on_track" && health?.message ? (
           <span

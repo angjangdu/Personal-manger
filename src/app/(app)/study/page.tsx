@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useState } from "react";
@@ -19,6 +19,8 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { SubjectFormDialog } from "@/components/study/subject-form-dialog";
 import { LogSessionDialog } from "@/components/study/log-session-dialog";
 import { appStore } from "@/services/app-store";
+import { attachmentsFor } from "@/components/files/attachment-list";
+import { Paperclip } from "lucide-react";
 import { useAppState } from "@/hooks/use-app-state";
 import { useNow } from "@/hooks/use-now";
 import { subjectStats, studyReport } from "@/lib/study-utils";
@@ -133,6 +135,9 @@ export default function StudyPage() {
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {subjects.map((subject) => {
             const stats = subjectStats(state, subject, nowMs);
+            const fileCount = attachmentsFor(state, {
+              studySubjectId: subject.id,
+            }).length;
             return (
               <div key={subject.id} className="group hover:bg-accent/40 relative rounded-xl border p-4 transition-colors">
                 <div className="mb-3 flex items-start gap-2">
@@ -147,6 +152,12 @@ export default function StudyPage() {
                       <p className="text-muted-foreground mt-0.5 text-xs tabular-nums">
                         {stats.units.length} units · {stats.topics.length} topics ·{" "}
                         {stats.learning} learning
+                        {fileCount > 0 && (
+                          <span className="ml-2 inline-flex items-center gap-1">
+                            <Paperclip className="size-3" aria-hidden />
+                            {fileCount}
+                          </span>
+                        )}
                       </p>
                     )}
                   </Link>

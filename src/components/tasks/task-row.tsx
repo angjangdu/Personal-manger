@@ -1,6 +1,8 @@
 "use client";
 
-import { CalendarClock, MoreHorizontal, Pencil, Repeat, Star, Trash2, Timer, XCircle } from "lucide-react";
+import { useState } from "react";
+import { CalendarClock, MoreHorizontal, Pencil, Paperclip, Repeat, Star, Trash2, Timer, XCircle } from "lucide-react";
+import { TaskFilesDialog } from "@/components/tasks/task-files-dialog";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -62,6 +64,10 @@ export function TaskRow({ task, onEdit }: TaskRowProps) {
         ),
       0
     );
+  const fileCount = state.attachments.filter(
+    (a) => a.taskId && a.taskId.split("#")[0] === templateId
+  ).length;
+  const [filesOpen, setFilesOpen] = useState(false);
 
   function remove() {
     // Occurrence menu offers Skip instead; delete here removes the series.
@@ -172,6 +178,15 @@ export function TaskRow({ task, onEdit }: TaskRowProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => setFilesOpen(true)}>
+            <Paperclip aria-hidden />
+            Files
+            {fileCount > 0 && (
+              <span className="text-muted-foreground ml-auto tabular-nums">
+                {fileCount}
+              </span>
+            )}
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => onEdit(task)}>
             <Pencil aria-hidden /> Edit
           </DropdownMenuItem>
@@ -196,10 +211,14 @@ export function TaskRow({ task, onEdit }: TaskRowProps) {
           </DropdownMenuSub>
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onClick={remove}>
-            <Trash2 aria-hidden /> Delete
+            <Trash2 aria-hidden /> {task.virtual ? "Delete series" : "Delete"}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {filesOpen && (
+        <TaskFilesDialog task={task} onClose={() => setFilesOpen(false)} />
+      )}
     </li>
   );
 }
