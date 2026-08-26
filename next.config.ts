@@ -10,6 +10,7 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   /* Dev access from LAN devices (e.g. phone at 192.168.56.1). */
   allowedDevOrigins: ["192.168.56.1"],
+  images: { unoptimized: true },
   // Phase 31: bundle + rendering optimizations
   experimental: {
     optimizePackageImports: ["lucide-react", "radix-ui", "sonner"],
