@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import withPWA from "next-pwa";
 
 const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
@@ -21,6 +22,42 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
+  turbopack: {},
 };
 
-export default nextConfig;
+const withPWAConfig = withPWA({
+  dest: "public",
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === "development",
+  buildExcludes: [/middleware-manifest\.json$/],
+  runtimeCaching: [
+    {
+      urlPattern: /^https:\/\/.*\.supabase\.co\/.*/,
+      handler: "NetworkFirst",
+      options: {
+        cacheName: "supabase-api",
+        expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 },
+        networkTimeoutSeconds: 10,
+      },
+    },
+    {
+      urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/,
+      handler: "CacheFirst",
+      options: {
+        cacheName: "google-fonts",
+        expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
+      },
+    },
+    {
+      urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/,
+      handler: "CacheFirst",
+      options: {
+        cacheName: "google-fonts-static",
+        expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
+      },
+    },
+  ],
+})(nextConfig);
+
+export default withPWAConfig;

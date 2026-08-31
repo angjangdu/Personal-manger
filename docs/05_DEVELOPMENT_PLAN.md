@@ -405,17 +405,28 @@ USER
 
 Admin routes require Admin authorization. User data access must also be enforced at the database level.
 
-## 30. Phase 28 — Mobile/PWA
+## 30. Phase 28 — PWA
 
 After real-data web functionality is stable:
 
 ```text
 Responsive Web
- ↓
-PWA
- ↓
-Android
+  ↓
+PWA (installable, offline-first, push notifications)
 ```
+
+### PWA Checklist
+
+- [x] Web App Manifest (`/manifest.webmanifest`)
+- [x] Service Worker (`next-pwa` generated, offline-first with network-first fallback)
+- [x] Install prompt support
+- [x] Offline badge indicator
+- [x] Offline fallback page (`/offline.html`)
+- [x] App shortcuts (New Task, Start Timer)
+- [x] Apple PWA support (apple-touch-icon, apple-web-app capable)
+- [ ] Background sync for pending mutations
+- [ ] Push notifications (Supabase realtime + web push)
+- [ ] Periodic background sync for analytics
 
 ## 31. Phase 29 — Testing
 
@@ -573,12 +584,12 @@ Daily End → Generate Review
 ✓ Account generation
 ```
 
-### Milestone 5 — Mobile
+### Milestone 5 — PWA
 
 ```text
 ✓ Responsive
-✓ PWA
-✓ Android
+✓ PWA (installable, offline, shortcuts)
+✓ Push notifications
 ```
 
 ### Milestone 6 — Intelligence

@@ -87,16 +87,6 @@ export default function LoginPage() {
               <LogIn aria-hidden /> {busy ? "Signing in…" : "Sign in"}
             </Button>
           </form>
-
-          <div className="border-t pt-3 mt-5">
-            <p className="text-muted-foreground text-[11px] leading-relaxed">
-              No account and no signup — by design. First run claims the owner:
-              <code className="bg-muted mx-1 rounded px-1 py-0.5">
-                npm run set:owner -- you@example.com YourPassword
-              </code>
-              then sign in here.
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>
